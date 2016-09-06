@@ -199,3 +199,5 @@ FakesAssemblies/
 project.lock.json
 *.VC.db
 *.VC.opendb
+libCRoaring.so
+CRoaring.dll
