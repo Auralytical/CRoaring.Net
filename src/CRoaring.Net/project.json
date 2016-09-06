@@ -17,7 +17,7 @@
     "debugType": "portable",
     "platform": "x64",
     "copyToOutput": {
-      "includeFiles": [ "CRoaring.dll", "libCRoaring.so" ]
+      "include": [ "CRoaring.dll", "libCRoaring.so" ]
     }
   },
 

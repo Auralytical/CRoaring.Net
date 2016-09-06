@@ -3,4 +3,4 @@ x86_64-linux-gnu-gcc -march=native -O3 -std=c11 -shared -o src/CRoaring/libCRoar
 cp src/CRoaring/libCRoaring.so src/CRoaring.Net/
 
 dotnet restore
-dotnet build
+dotnet build src/CRoaring.Net

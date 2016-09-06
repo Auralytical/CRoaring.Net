@@ -3,4 +3,4 @@ x86_64-w64-mingw32-gcc -march=native -O3 -std=c11 -shared -o src/CRoaring/CRoari
 cp src/CRoaring/CRoaring.dll src/CRoaring.Net/
 
 dotnet restore
-dotnet build
+dotnet build src/CRoaring.Net
