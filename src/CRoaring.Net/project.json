@@ -1,0 +1,34 @@
+﻿{
+  "version": "1.0.0-alpha-*",
+  "description": ".Net wrapper for CRoaring - a C implementation of Roaring Bitmaps",
+  "authors": [ "RogueException" ],
+
+  "packOptions": {
+    "tags": [ "roaring", "croaring" ],
+    "licenseUrl": "http://opensource.org/licenses/MIT",
+    "projectUrl": "https://github.com/RogueException/CRoaring",
+    "repository": {
+      "type": "git",
+      "url": "git://github.com/RogueException/CRoaring"
+    }
+  },
+
+  "buildOptions": {
+    "debugType": "portable",
+    "platform": "x64",
+    "copyToOutput": {
+      "includeFiles": [ "CRoaring.dll", "libCRoaring.so" ]
+    }
+  },
+
+  "dependencies": {
+    "Microsoft.NETCore.App": {
+      "type": "platform",
+      "version": "1.0.0"
+    }
+  },
+
+  "frameworks": {
+    "netcoreapp1.0": {}
+  }
+}
