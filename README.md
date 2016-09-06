@@ -31,7 +31,7 @@ Requirements:
 
 Run the included `build.sh` script.
 
-## Using Visual Studio (Windows)
+### Using Visual Studio (Windows)
 
 Requirements:
 - [VS2015 Update 3](https://www.visualstudio.com/downloads/)
