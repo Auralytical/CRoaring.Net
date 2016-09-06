@@ -4,7 +4,7 @@
   "authors": [ "RogueException" ],
 
   "packOptions": {
-    "tags": [ "roaring", "croaring" ],
+    "tags": [ "croaring", "roaring", "bitmap" ],
     "licenseUrl": "http://opensource.org/licenses/MIT",
     "projectUrl": "https://github.com/RogueException/CRoaring",
     "repository": {
