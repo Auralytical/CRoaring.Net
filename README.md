@@ -7,7 +7,7 @@ A .Net wrapper for [CRoaring](https://github.com/RoaringBitmap/CRoaring) - a C i
 using (var rb1 = new RoaringBitmap())
 using (var rb2 = new RoaringBitmap())
 {
-	rb1.Add(1, 2, 3, 4, 5, 100, 100);
+	rb1.Add(1, 2, 3, 4, 5, 100, 1000);
 	rb1.Optimize();
 	
 	rb2.Add(3, 4, 5, 7, 50);
