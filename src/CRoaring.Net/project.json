@@ -22,7 +22,10 @@
   },
 
   "dependencies": {
-    "NETStandard.Library": "1.6.0"
+    "System.Collections.Concurrent": "4.0.12",
+    "System.Runtime": "4.1.0",
+    "System.Runtime.InteropServices": "4.1.0",
+    "System.Threading": "4.0.11"
   },
 
   "frameworks": {
