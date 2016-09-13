@@ -75,8 +75,8 @@
     <ClCompile>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">WIN32;_DEBUG;_WINDOWS;_USRDLL;CRoaringClang_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">WIN32;NDEBUG;_WINDOWS;_USRDLL;CRoaringClang_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">_DEBUG;_WINDOWS;_USRDLL;CRoaringClang_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NDEBUG;_WINDOWS;_USRDLL;CRoaringClang_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">DISABLE_X64;_DEBUG;_WINDOWS;_USRDLL;CRoaringClang_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">DISABLE_X64;NDEBUG;_WINDOWS;_USRDLL;CRoaringClang_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CLanguageStandard Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Default</CLanguageStandard>
       <CppLanguageStandard Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Default</CppLanguageStandard>
       <CLanguageStandard Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Default</CLanguageStandard>

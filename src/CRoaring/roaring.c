@@ -1,8 +1,8 @@
-/* auto-generated on Mon Sep  5 14:58:04 DST 2016. Do not edit! */
+/* auto-generated on Tue Sep 13 14:01:13 DST 2016. Do not edit! */
 #line 1 "roaring.c"
 #include "roaring.h"
-/* begin file /home/Voltana/CRoaring/src/array_util.c */
-#line 8 "/home/Voltana/CRoaring/src/array_util.c"
+/* begin file src/array_util.c */
+#line 8 "src/array_util.c"
 #include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -1209,9 +1209,9 @@ size_t union_uint32_card(const uint32_t *set_1, size_t size_1,
     }
     return pos;
 }
-/* end file /home/Voltana/CRoaring/src/array_util.c */
-/* begin file /home/Voltana/CRoaring/src/bitset_util.c */
-#line 8 "/home/Voltana/CRoaring/src/bitset_util.c"
+/* end file src/array_util.c */
+/* begin file src/bitset_util.c */
+#line 8 "src/bitset_util.c"
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -2137,9 +2137,9 @@ void bitset_flip_list(void *bitset, const uint16_t *list, uint64_t length) {
         list++;
     }
 }
-/* end file /home/Voltana/CRoaring/src/bitset_util.c */
-/* begin file /home/Voltana/CRoaring/src/containers/array.c */
-#line 8 "/home/Voltana/CRoaring/src/containers/array.c"
+/* end file src/bitset_util.c */
+/* begin file src/containers/array.c */
+#line 8 "src/containers/array.c"
 /*
  * array.c
  *
@@ -2620,9 +2620,9 @@ bool array_container_iterate(const array_container_t *cont, uint32_t base,
         if (!iterator(cont->array[i] + base, ptr)) return false;
     return true;
 }
-/* end file /home/Voltana/CRoaring/src/containers/array.c */
-/* begin file /home/Voltana/CRoaring/src/containers/bitset.c */
-#line 8 "/home/Voltana/CRoaring/src/containers/bitset.c"
+/* end file src/containers/array.c */
+/* begin file src/containers/bitset.c */
+#line 8 "src/containers/bitset.c"
 /*
  * bitset.c
  *
@@ -2645,7 +2645,7 @@ extern inline bool bitset_container_get(const bitset_container_t *bitset,
 extern int32_t bitset_container_serialized_size_in_bytes();
 extern bool bitset_container_add(bitset_container_t *bitset, uint16_t pos);
 extern bool bitset_container_remove(bitset_container_t *bitset, uint16_t pos);
-extern bool bitset_container_contains(const bitset_container_t *bitset,
+extern inline  bool bitset_container_contains(const bitset_container_t *bitset,
                                       uint16_t pos);
 
 void bitset_container_clear(bitset_container_t *bitset) {
@@ -3135,9 +3135,9 @@ bool bitset_container_select(const bitset_container_t *container, uint32_t *star
     assert(false);
     __builtin_unreachable();
 }
-/* end file /home/Voltana/CRoaring/src/containers/bitset.c */
-/* begin file /home/Voltana/CRoaring/src/containers/containers.c */
-#line 8 "/home/Voltana/CRoaring/src/containers/containers.c"
+/* end file src/containers/bitset.c */
+/* begin file src/containers/containers.c */
+#line 8 "src/containers/containers.c"
 
 
 extern  inline const void *container_unwrap_shared(
@@ -3406,9 +3406,9 @@ extern void *container_lazy_ixor(void *c1, uint8_t type1, const void *c2,
 
 extern void *container_andnot(const void *c1, uint8_t type1, const void *c2,
                               uint8_t type2, uint8_t *result_type);
-/* end file /home/Voltana/CRoaring/src/containers/containers.c */
-/* begin file /home/Voltana/CRoaring/src/containers/convert.c */
-#line 8 "/home/Voltana/CRoaring/src/containers/convert.c"
+/* end file src/containers/containers.c */
+/* begin file src/containers/convert.c */
+#line 8 "src/containers/convert.c"
 #include <stdio.h>
 
 
@@ -3698,9 +3698,9 @@ void *convert_run_optimize(void *c, uint8_t typecode_original,
         return NULL;
     }
 }
-/* end file /home/Voltana/CRoaring/src/containers/convert.c */
-/* begin file /home/Voltana/CRoaring/src/containers/mixed_andnot.c */
-#line 8 "/home/Voltana/CRoaring/src/containers/mixed_andnot.c"
+/* end file src/containers/convert.c */
+/* begin file src/containers/mixed_andnot.c */
+#line 8 "src/containers/mixed_andnot.c"
 /*
  * mixed_andnot.c.  More methods since operation is not symmetric,
  * except no "wide" andnot , so no lazy options motivated.
@@ -4199,9 +4199,9 @@ bool bitset_bitset_container_iandnot(bitset_container_t *src_1,
         return true;
     }
 }
-/* end file /home/Voltana/CRoaring/src/containers/mixed_andnot.c */
-/* begin file /home/Voltana/CRoaring/src/containers/mixed_equal.c */
-#line 8 "/home/Voltana/CRoaring/src/containers/mixed_equal.c"
+/* end file src/containers/mixed_andnot.c */
+/* begin file src/containers/mixed_equal.c */
+#line 8 "src/containers/mixed_equal.c"
 
 bool array_container_equal_bitset(array_container_t* container1,
                                   bitset_container_t* container2) {
@@ -4276,9 +4276,9 @@ bool run_container_equals_bitset(run_container_t* container1,
     }
     return true;
 }
-/* end file /home/Voltana/CRoaring/src/containers/mixed_equal.c */
-/* begin file /home/Voltana/CRoaring/src/containers/mixed_intersection.c */
-#line 8 "/home/Voltana/CRoaring/src/containers/mixed_intersection.c"
+/* end file src/containers/mixed_equal.c */
+/* begin file src/containers/mixed_intersection.c */
+#line 8 "src/containers/mixed_intersection.c"
 /*
  * mixed_intersection.c
  *
@@ -4479,9 +4479,9 @@ bool bitset_bitset_container_intersection_inplace(
     }
     return false;  // not a bitset
 }
-/* end file /home/Voltana/CRoaring/src/containers/mixed_intersection.c */
-/* begin file /home/Voltana/CRoaring/src/containers/mixed_negation.c */
-#line 8 "/home/Voltana/CRoaring/src/containers/mixed_negation.c"
+/* end file src/containers/mixed_intersection.c */
+/* begin file src/containers/mixed_negation.c */
+#line 8 "src/containers/mixed_negation.c"
 /*
  * mixed_negation.c
  *
@@ -4805,9 +4805,9 @@ int run_container_negation_range_inplace(run_container_t *src,
 
     return return_typecode;
 }
-/* end file /home/Voltana/CRoaring/src/containers/mixed_negation.c */
-/* begin file /home/Voltana/CRoaring/src/containers/mixed_union.c */
-#line 8 "/home/Voltana/CRoaring/src/containers/mixed_union.c"
+/* end file src/containers/mixed_negation.c */
+/* begin file src/containers/mixed_union.c */
+#line 8 "src/containers/mixed_union.c"
 /*
  * mixed_union.c
  *
@@ -5006,9 +5006,9 @@ bool array_array_container_lazy_union(const array_container_t *src_1,
     }
     return returnval;
 }
-/* end file /home/Voltana/CRoaring/src/containers/mixed_union.c */
-/* begin file /home/Voltana/CRoaring/src/containers/mixed_xor.c */
-#line 8 "/home/Voltana/CRoaring/src/containers/mixed_xor.c"
+/* end file src/containers/mixed_union.c */
+/* begin file src/containers/mixed_xor.c */
+#line 8 "src/containers/mixed_xor.c"
 /*
  * mixed_xor.c
  */
@@ -5349,9 +5349,9 @@ int run_run_container_ixor(run_container_t *src_1, const run_container_t *src_2,
     run_container_free(src_1);
     return ans;
 }
-/* end file /home/Voltana/CRoaring/src/containers/mixed_xor.c */
-/* begin file /home/Voltana/CRoaring/src/containers/run.c */
-#line 8 "/home/Voltana/CRoaring/src/containers/run.c"
+/* end file src/containers/mixed_xor.c */
+/* begin file src/containers/run.c */
+#line 8 "src/containers/run.c"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -6056,9 +6056,9 @@ bool run_container_select(const run_container_t *container,
     }
     return false;
 }
-/* end file /home/Voltana/CRoaring/src/containers/run.c */
-/* begin file /home/Voltana/CRoaring/src/roaring.c */
-#line 8 "/home/Voltana/CRoaring/src/roaring.c"
+/* end file src/containers/run.c */
+/* begin file src/roaring.c */
+#line 8 "src/roaring.c"
 #include <assert.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -6134,22 +6134,19 @@ roaring_bitmap_t *roaring_bitmap_create_with_capacity(uint32_t cap) {
     return ans;
 }
 
-roaring_bitmap_t *roaring_bitmap_of_ptr(size_t n_args, const uint32_t *vals) {
-    roaring_bitmap_t *answer = roaring_bitmap_create();
+void roaring_bitmap_add_many(roaring_bitmap_t * r, size_t n_args, const uint32_t *vals) {
     void * container = NULL; // hold value of last container touched
     uint8_t typecode = 0; // typecode of last container touched
     uint32_t prev = 0; // previous valued inserted
     size_t i = 0; // index of value
     int containerindex = 0;
-    if(n_args > 0) {
-        uint32_t val;
-        memcpy(&val, vals + i, sizeof(val));
-    	container = containerptr_roaring_bitmap_add(answer, val, &typecode, &containerindex);
-    	prev = val;
-    	i++;
-    }
+    if(n_args == 0) return;
+    uint32_t val;
+    memcpy(&val, vals + i, sizeof(val));
+    container = containerptr_roaring_bitmap_add(r, val, &typecode, &containerindex);
+    prev = val;
+    i++;
     for (; i < n_args; i++) {
-        uint32_t val;
         memcpy(&val, vals + i, sizeof(val));
     	if(((prev ^ val) >> 16) == 0) { // no need to seek the container, it is at hand
     		// because we already have the container at hand, we can do the insertion
@@ -6159,16 +6156,21 @@ roaring_bitmap_t *roaring_bitmap_of_ptr(size_t n_args, const uint32_t *vals) {
                 container_add(container, val & 0xFFFF, typecode, &newtypecode);
             if (container2 != container) { // rare instance when we need to change the container type
                 container_free(container, typecode);
-                ra_set_container_at_index(& answer->high_low_container, containerindex, container2,
+                ra_set_container_at_index(& r->high_low_container, containerindex, container2,
                                           newtypecode);
                 typecode = newtypecode;
                 container =  container2;
             }
     	} else {
-        	container = containerptr_roaring_bitmap_add(answer, val, &typecode, &containerindex);
+        	container = containerptr_roaring_bitmap_add(r, val, &typecode, &containerindex);
     	}
     	prev  = val;
     }
+}
+
+roaring_bitmap_t *roaring_bitmap_of_ptr(size_t n_args, const uint32_t *vals) {
+    roaring_bitmap_t *answer = roaring_bitmap_create();
+    roaring_bitmap_add_many(answer, n_args, vals);
     return answer;
 }
 
@@ -7702,9 +7704,9 @@ bool roaring_bitmap_select(const roaring_bitmap_t *bm, uint32_t rank,
     } else
         return false;
 }
-/* end file /home/Voltana/CRoaring/src/roaring.c */
-/* begin file /home/Voltana/CRoaring/src/roaring_array.c */
-#line 8 "/home/Voltana/CRoaring/src/roaring_array.c"
+/* end file src/roaring.c */
+/* begin file src/roaring_array.c */
+#line 8 "src/roaring_array.c"
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -8305,9 +8307,9 @@ bool ra_portable_deserialize(roaring_array_t *answer, const char *buf) {
     return true;
 }
 
-/* end file /home/Voltana/CRoaring/src/roaring_array.c */
-/* begin file /home/Voltana/CRoaring/src/roaring_priority_queue.c */
-#line 8 "/home/Voltana/CRoaring/src/roaring_priority_queue.c"
+/* end file src/roaring_array.c */
+/* begin file src/roaring_priority_queue.c */
+#line 8 "src/roaring_priority_queue.c"
 
 struct roaring_pq_element_s {
     uint64_t size;
@@ -8543,4 +8545,4 @@ roaring_bitmap_t *roaring_bitmap_or_many_heap(uint32_t number,
     pq_free(pq);
     return answer;
 }
-/* end file /home/Voltana/CRoaring/src/roaring_priority_queue.c */
+/* end file src/roaring_priority_queue.c */
