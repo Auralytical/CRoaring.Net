@@ -187,6 +187,11 @@ namespace Roaring
             return NativeMethods.roaring_bitmap_equals(_pointer, bitmap._pointer);
         }
 
+        public RoaringBitmap Clone()
+        {
+            return new RoaringBitmap(NativeMethods.roaring_bitmap_copy(_pointer));
+        }
+
         /*public void Print()
             => NativeMethods.roaring_bitmap_printf(_pointer);*/
         public Statistics GetStatistics()

@@ -16,7 +16,7 @@ namespace Roaring
         [DllImport("CRoaring")]
         public static extern IntPtr roaring_bitmap_of_ptr(uint count, uint[] values);
         [DllImport("CRoaring")]
-        public static extern IntPtr roaring_bitmap_copy(uint count, uint[] values);
+        public static extern IntPtr roaring_bitmap_copy(IntPtr bitmap);
 
         [DllImport("CRoaring")]
         public static extern void roaring_bitmap_free(IntPtr bitmap);
