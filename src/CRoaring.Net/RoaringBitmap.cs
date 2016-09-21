@@ -32,7 +32,7 @@ namespace Roaring
             _pointer = pointer;
         }
 
-        public static RoaringBitmap FromRange(uint min, uint max, uint step)
+        public static RoaringBitmap FromRange(uint min, uint max, uint step = 1)
             => new RoaringBitmap(NativeMethods.roaring_bitmap_from_range(min, max, step));
         public static RoaringBitmap FromValues(uint[] values)
             => new RoaringBitmap(NativeMethods.roaring_bitmap_of_ptr((uint)values.Length, values));
@@ -254,16 +254,12 @@ namespace Roaring
 
             public bool MoveNext()
             {
-                try
-                {
-                    _value = _buffer.Take();
-                    return true;
-                }
-                catch (InvalidOperationException)
+                if (!_buffer.TryTake(out _value, -1))
                 {
                     _completeEvent.Set();
                     return false;
                 }
+                return true;
             }
             public void Reset() { throw new NotSupportedException(); }
 
