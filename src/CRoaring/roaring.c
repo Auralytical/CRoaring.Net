@@ -1,8 +1,7 @@
-/* auto-generated on Tue Sep 13 14:01:13 DST 2016. Do not edit! */
+/* auto-generated on Wed 14 Sep 2016 11:52:45 EDT. Do not edit! */
 #line 1 "roaring.c"
 #include "roaring.h"
 /* begin file src/array_util.c */
-#line 8 "src/array_util.c"
 #include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -1211,7 +1210,6 @@ size_t union_uint32_card(const uint32_t *set_1, size_t size_1,
 }
 /* end file src/array_util.c */
 /* begin file src/bitset_util.c */
-#line 8 "src/bitset_util.c"
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -2139,7 +2137,6 @@ void bitset_flip_list(void *bitset, const uint16_t *list, uint64_t length) {
 }
 /* end file src/bitset_util.c */
 /* begin file src/containers/array.c */
-#line 8 "src/containers/array.c"
 /*
  * array.c
  *
@@ -2622,7 +2619,6 @@ bool array_container_iterate(const array_container_t *cont, uint32_t base,
 }
 /* end file src/containers/array.c */
 /* begin file src/containers/bitset.c */
-#line 8 "src/containers/bitset.c"
 /*
  * bitset.c
  *
@@ -2715,7 +2711,7 @@ void bitset_container_add_from_range(bitset_container_t *bitset, uint32_t min,
 
 /* Free memory. */
 void bitset_container_free(bitset_container_t *bitset) {
-    free(bitset->array);
+    aligned_free(bitset->array);
     bitset->array = NULL;
     free(bitset);
 }
@@ -3137,7 +3133,6 @@ bool bitset_container_select(const bitset_container_t *container, uint32_t *star
 }
 /* end file src/containers/bitset.c */
 /* begin file src/containers/containers.c */
-#line 8 "src/containers/containers.c"
 
 
 extern  inline const void *container_unwrap_shared(
@@ -3408,7 +3403,6 @@ extern void *container_andnot(const void *c1, uint8_t type1, const void *c2,
                               uint8_t type2, uint8_t *result_type);
 /* end file src/containers/containers.c */
 /* begin file src/containers/convert.c */
-#line 8 "src/containers/convert.c"
 #include <stdio.h>
 
 
@@ -3700,7 +3694,6 @@ void *convert_run_optimize(void *c, uint8_t typecode_original,
 }
 /* end file src/containers/convert.c */
 /* begin file src/containers/mixed_andnot.c */
-#line 8 "src/containers/mixed_andnot.c"
 /*
  * mixed_andnot.c.  More methods since operation is not symmetric,
  * except no "wide" andnot , so no lazy options motivated.
@@ -4201,7 +4194,6 @@ bool bitset_bitset_container_iandnot(bitset_container_t *src_1,
 }
 /* end file src/containers/mixed_andnot.c */
 /* begin file src/containers/mixed_equal.c */
-#line 8 "src/containers/mixed_equal.c"
 
 bool array_container_equal_bitset(array_container_t* container1,
                                   bitset_container_t* container2) {
@@ -4278,7 +4270,6 @@ bool run_container_equals_bitset(run_container_t* container1,
 }
 /* end file src/containers/mixed_equal.c */
 /* begin file src/containers/mixed_intersection.c */
-#line 8 "src/containers/mixed_intersection.c"
 /*
  * mixed_intersection.c
  *
@@ -4481,7 +4472,6 @@ bool bitset_bitset_container_intersection_inplace(
 }
 /* end file src/containers/mixed_intersection.c */
 /* begin file src/containers/mixed_negation.c */
-#line 8 "src/containers/mixed_negation.c"
 /*
  * mixed_negation.c
  *
@@ -4807,7 +4797,6 @@ int run_container_negation_range_inplace(run_container_t *src,
 }
 /* end file src/containers/mixed_negation.c */
 /* begin file src/containers/mixed_union.c */
-#line 8 "src/containers/mixed_union.c"
 /*
  * mixed_union.c
  *
@@ -5008,7 +4997,6 @@ bool array_array_container_lazy_union(const array_container_t *src_1,
 }
 /* end file src/containers/mixed_union.c */
 /* begin file src/containers/mixed_xor.c */
-#line 8 "src/containers/mixed_xor.c"
 /*
  * mixed_xor.c
  */
@@ -5351,7 +5339,6 @@ int run_run_container_ixor(run_container_t *src_1, const run_container_t *src_2,
 }
 /* end file src/containers/mixed_xor.c */
 /* begin file src/containers/run.c */
-#line 8 "src/containers/run.c"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -6058,7 +6045,6 @@ bool run_container_select(const run_container_t *container,
 }
 /* end file src/containers/run.c */
 /* begin file src/roaring.c */
-#line 8 "src/roaring.c"
 #include <assert.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -7706,7 +7692,6 @@ bool roaring_bitmap_select(const roaring_bitmap_t *bm, uint32_t rank,
 }
 /* end file src/roaring.c */
 /* begin file src/roaring_array.c */
-#line 8 "src/roaring_array.c"
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -8309,7 +8294,6 @@ bool ra_portable_deserialize(roaring_array_t *answer, const char *buf) {
 
 /* end file src/roaring_array.c */
 /* begin file src/roaring_priority_queue.c */
-#line 8 "src/roaring_priority_queue.c"
 
 struct roaring_pq_element_s {
     uint64_t size;
