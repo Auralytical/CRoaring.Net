@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Roaring
+namespace CRoaring
 {
     public class RoaringBitmap : IDisposable, IEnumerable<uint>
     {

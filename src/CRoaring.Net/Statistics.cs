@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace Roaring
+namespace CRoaring
 {
     [StructLayout(LayoutKind.Sequential)]
     public struct Statistics

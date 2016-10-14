@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace Roaring
+namespace CRoaring
 {
     internal static class NativeMethods
     {
