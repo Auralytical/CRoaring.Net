@@ -2,7 +2,7 @@
 using System.Linq;
 using Xunit;
 
-namespace Roaring
+namespace CRoaring
 {
     public class Tests
     {        
