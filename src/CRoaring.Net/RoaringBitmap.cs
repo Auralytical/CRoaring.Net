@@ -134,7 +134,7 @@ namespace CRoaring
             => new RoaringBitmap(NativeMethods.roaring_bitmap_lazy_xor(_pointer, bitmap._pointer, bitsetConversion));
         public void ILazyXor(RoaringBitmap bitmap, bool bitsetConversion)
             => NativeMethods.roaring_bitmap_lazy_xor_inplace(_pointer, bitmap._pointer, bitsetConversion);
-        public void RepairAfterLazy(RoaringBitmap bitmap)
+        public void RepairAfterLazy()
             => NativeMethods.roaring_bitmap_repair_after_lazy(_pointer);
 
         //Optimization/Compression
