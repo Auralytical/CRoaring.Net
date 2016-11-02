@@ -1,5 +1,5 @@
 ﻿{
-  "version": "1.0.0-alpha-*",
+  "version": "1.0.0-alpha1",
   "description": ".Net wrapper for CRoaring - a C implementation of Roaring Bitmaps",
   "authors": [ "RogueException" ],
 
@@ -10,6 +10,9 @@
     "repository": {
       "type": "git",
       "url": "git://github.com/RogueException/CRoaring"
+    },
+    "files" : {
+      "includeFiles" : [ "CRoaring.dll", "libCRoaring.so" ]
     }
   },
 
