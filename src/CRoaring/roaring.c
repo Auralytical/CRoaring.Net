@@ -1,5 +1,4 @@
-/* auto-generated on Wed 14 Sep 2016 11:52:45 EDT. Do not edit! */
-#line 1 "roaring.c"
+/* auto-generated on Tue Feb  7 10:15:11 EST 2017. Do not edit! */
 #include "roaring.h"
 /* begin file src/array_util.c */
 #include <assert.h>
@@ -363,8 +362,8 @@ static const uint8_t shuffle_mask16[] __attribute__((aligned(0x1000))) = {
  * From Schlegel et al., Fast Sorted-Set Intersection using SIMD Instructions
  * Optimized by D. Lemire on May 3rd 2013
  */
-int32_t intersect_vector16(const uint16_t *A, size_t s_a, const uint16_t *B,
-                           size_t s_b, uint16_t *C) {
+int32_t intersect_vector16(const uint16_t *__restrict__ A, size_t s_a, const uint16_t *__restrict__ B,
+                           size_t s_b, uint16_t * C) {
     size_t count = 0;
     size_t i_a = 0, i_b = 0;
     const int vectorlength = sizeof(__m128i) / sizeof(uint16_t);
@@ -438,6 +437,135 @@ int32_t intersect_vector16(const uint16_t *A, size_t s_a, const uint16_t *B,
     }
     return count;
 }
+
+
+int32_t difference_vector16(const uint16_t *__restrict__ A, size_t s_a, const uint16_t *__restrict__ B,
+                            size_t s_b, uint16_t * C) {
+
+  // we handle the degenerate case
+  if (s_a == 0)
+    return 0;
+  if (s_b == 0) {
+    if (A != C)
+      memcpy(C, A, sizeof(uint16_t) * s_a);
+    return s_a;
+  }
+  // handle the leading zeroes, it is messy but it allows us to use the fast
+  // _mm_cmpistrm instrinsic safely
+  int32_t count = 0;
+  if ((A[0] == 0) || (B[0] == 0)) {
+    if ((A[0] == 0) && (B[0] == 0)) {
+      A++;
+      s_a--;
+      B++;
+      s_b--;
+    } else if (A[0] == 0) {
+      C[count++] = 0;
+      A++;
+      s_a--;
+    } else {
+      B++;
+      s_b--;
+    }
+  }
+  // at this point, we have two non-empty arrays, made of non-zero
+  // increasing values.
+  size_t i_a = 0, i_b = 0;
+  const size_t vectorlength = sizeof(__m128i) / sizeof(uint16_t);
+  const size_t st_a = (s_a / vectorlength) * vectorlength;
+  const size_t st_b = (s_b / vectorlength) * vectorlength;
+  if ((i_a < st_a) && (i_b < st_b)) { // this is the vectorized code path
+    __m128i v_a, v_b;                 //, v_bmax;
+    // we load a vector from A and a vector from B
+    v_a = _mm_lddqu_si128((__m128i *)&A[i_a]);
+    v_b = _mm_lddqu_si128((__m128i *)&B[i_b]);
+    // we have a runningmask which indicates which values from A have been
+    // spotted in B, these don't get written out.
+    __m128i runningmask_a_found_in_b = _mm_setzero_si128();
+    /****
+    * start of the main vectorized loop
+    *****/
+    while (true) {
+      // afoundinb will contain a mask indicate for each entry in A whether it is seen
+      // in B
+      const __m128i a_found_in_b = _mm_cmpistrm(
+          v_b, v_a, _SIDD_UWORD_OPS | _SIDD_CMP_EQUAL_ANY | _SIDD_BIT_MASK);
+      runningmask_a_found_in_b =
+          _mm_or_si128(runningmask_a_found_in_b, a_found_in_b);
+      // we always compare the last values of A and B
+      const uint16_t a_max = A[i_a + vectorlength - 1];
+      const uint16_t b_max = B[i_b + vectorlength - 1];
+      if (a_max <= b_max) {
+        // Ok. In this code path, we are ready to write our v_a
+        // because there is no need to read more from B, they will
+        // all be large values.
+        const int bitmask_belongs_to_difference =
+            _mm_extract_epi32(runningmask_a_found_in_b, 0) ^ 0xFF;
+        /*** next few lines are probably expensive *****/
+        __m128i sm16 = _mm_load_si128((const __m128i *)shuffle_mask16 +
+                                      bitmask_belongs_to_difference);
+        __m128i p = _mm_shuffle_epi8(v_a, sm16);
+        _mm_storeu_si128((__m128i *)&C[count], p); // can overflow
+        count += _mm_popcnt_u32(bitmask_belongs_to_difference);
+        // we advance a
+        i_a += vectorlength;
+        if (i_a == st_a)// no more
+          break;
+        runningmask_a_found_in_b = _mm_setzero_si128();
+        v_a = _mm_lddqu_si128((__m128i *)&A[i_a]);
+      }
+      if (b_max <= a_max) {
+        // in this code path, the current v_b has become useless
+        i_b += vectorlength;
+        if (i_b == st_b)
+          break;
+        v_b = _mm_lddqu_si128((__m128i *)&B[i_b]);
+      }
+    }
+    // at this point, either we have i_a == st_a, which is the end of the vectorized processing,
+    // or we have i_b == st_b,  and we are not done processing the vector... so we need to finish it off.
+   if (i_a < st_a) {     // we have unfinished business...
+      uint16_t buffer[8]; // buffer to do a masked load
+      memset(buffer, 0, 8 * sizeof(uint16_t));
+      memcpy(buffer, B + i_b, (s_b - i_b) * sizeof(uint16_t));
+      v_b = _mm_lddqu_si128((__m128i *)buffer);
+      const __m128i a_found_in_b = _mm_cmpistrm(
+          v_b, v_a, _SIDD_UWORD_OPS | _SIDD_CMP_EQUAL_ANY | _SIDD_BIT_MASK);
+      runningmask_a_found_in_b =
+          _mm_or_si128(runningmask_a_found_in_b, a_found_in_b);
+      const int bitmask_belongs_to_difference =
+          _mm_extract_epi32(runningmask_a_found_in_b, 0) ^ 0xFF;
+      __m128i sm16 = _mm_load_si128((const __m128i *)shuffle_mask16 +
+                                    bitmask_belongs_to_difference);
+      __m128i p = _mm_shuffle_epi8(v_a, sm16);
+      _mm_storeu_si128((__m128i *)&C[count], p); // can overflow
+      count += _mm_popcnt_u32(bitmask_belongs_to_difference);
+      i_a += vectorlength;
+    }
+    // at this point we should have i_a == st_a and i_b == st_b
+  }
+  // do the tail using scalar code
+  while (i_a < s_a && i_b < s_b) {
+    uint16_t a = A[i_a];
+    uint16_t b = B[i_b];
+    if (b < a) {
+      i_b++;
+    } else if (a < b) {
+      C[count] = a;
+      count++;
+      i_a++;
+    } else { //==
+      i_a++;
+      i_b++;
+    }
+  }
+  if (i_a < s_a) {
+    memmove(C + count, A + i_a, sizeof(uint16_t) * (s_a - i_a));
+    count += s_a - i_a;
+  }
+  return count;
+}
+
 #endif  // IS_X64
 
 /* Computes the intersection between one small and one large set of uint16_t.
@@ -610,7 +738,85 @@ size_t union_uint16(const uint16_t *set_1, size_t size_1, const uint16_t *set_2,
     return pos;
 }
 
-#if defined(USE_BMI)
+int difference_uint16(const uint16_t *a1, int length1, const uint16_t *a2,
+                      int length2, uint16_t *a_out) {
+  int out_card = 0;
+  int k1 = 0, k2 = 0;
+  if (length1 == 0)
+    return 0;
+  if (length2 == 0) {
+    if (a1 != a_out)
+      memcpy(a_out, a1, sizeof(uint16_t) * length1);
+    return length1;
+  }
+  uint16_t s1 = a1[k1];
+  uint16_t s2 = a2[k2];
+  while (true) {
+    if (s1 < s2) {
+      a_out[out_card++] = s1;
+      ++k1;
+      if (k1 >= length1) {
+        break;
+      }
+      s1 = a1[k1];
+    } else if (s1 == s2) {
+      ++k1;
+      ++k2;
+      if (k1 >= length1) {
+        break;
+      }
+      if (k2 >= length2) {
+        memmove(a_out + out_card, a1 + k1, sizeof(uint16_t) * (length1 - k1));
+        return out_card + length1 - k1;
+      }
+      s1 = a1[k1];
+      s2 = a2[k2];
+    } else { // if (val1>val2)
+      ++k2;
+      if (k2 >= length2) {
+        memmove(a_out + out_card, a1 + k1, sizeof(uint16_t) * (length1 - k1));
+        return out_card + length1 - k1;
+      }
+      s2 = a2[k2];
+    }
+  }
+  return out_card;
+}
+
+
+int32_t xor_uint16(const uint16_t *array_1, int32_t card_1,
+                   const uint16_t *array_2, int32_t card_2, uint16_t *out) {
+  int32_t pos1 = 0, pos2 = 0, pos_out = 0;
+  while (pos1 < card_1 && pos2 < card_2) {
+    const uint16_t v1 = array_1[pos1];
+    const uint16_t v2 = array_2[pos2];
+    if (v1 == v2) {
+      ++pos1;
+      ++pos2;
+      continue;
+    }
+    if (v1 < v2) {
+      out[pos_out++] = v1;
+      ++pos1;
+    } else {
+      out[pos_out++] = v2;
+      ++pos2;
+    }
+  }
+  if (pos1 < card_1) {
+      const size_t n_elems = card_1 - pos1;
+      memcpy(out + pos_out, array_1 + pos1, n_elems * sizeof(uint16_t));
+      pos_out += n_elems;
+  } else if (pos2 < card_2) {
+      const size_t n_elems = card_2 - pos2;
+      memcpy(out + pos_out, array_2 + pos2, n_elems * sizeof(uint16_t));
+      pos_out += n_elems;
+  }
+  return pos_out;
+}
+
+
+#if defined(IS_X64)
 
 /***
  * start of the SIMD 16-bit union code
@@ -1002,8 +1208,7 @@ static uint8_t uniqshuf[] = {
 static inline int store_unique(__m128i old, __m128i newval, uint16_t *output) {
     __m128i vecTmp = _mm_alignr_epi8(newval, old, 16 - 2);
     // lots of high latency instructions follow (optimize?)
-    int M = _mm_movemask_epi8(_mm_cmpeq_epi16(vecTmp, newval));
-    M = _pext_u32(M, 0x5555);
+    int M = _mm_movemask_epi8(_mm_packs_epi16(_mm_cmpeq_epi16(vecTmp,newval),_mm_setzero_si128()));
     int numberofnewvalues = 8 - _mm_popcnt_u32(M);
     __m128i key = _mm_lddqu_si128((const __m128i *)uniqshuf + M);
     __m128i val = _mm_shuffle_epi8(newval, key);
@@ -1048,8 +1253,7 @@ uint32_t union_vector16(const uint16_t *__restrict__ array1, uint32_t length1,
     vB = _mm_lddqu_si128((const __m128i *)array2 + pos2);
     pos2++;
     sse_merge(&vA, &vB, &vecMin, &vecMax);
-    laststore =
-        _mm_set1_epi32(array1[0] < array2[0] ? array1[0] - 1 : array2[0] - 1);
+    laststore = _mm_set1_epi16(-1);
     output += store_unique(laststore, vecMin, output);
     laststore = vecMin;
     if ((pos1 < len1) && (pos2 < len2)) {
@@ -1114,6 +1318,152 @@ uint32_t union_vector16(const uint16_t *__restrict__ array1, uint32_t length1,
  * End of the SIMD 16-bit union code
  *
  */
+
+/**
+ * Start of SIMD 16-bit XOR code
+ */
+
+// write vector new, while omitting repeated values assuming that previously
+// written vector was "old"
+static inline int store_unique_xor(__m128i old, __m128i newval,
+                                   uint16_t *output) {
+  __m128i vecTmp1 = _mm_alignr_epi8(newval, old, 16 - 4);
+  __m128i vecTmp2 = _mm_alignr_epi8(newval, old, 16 - 2);
+  __m128i equalleft = _mm_cmpeq_epi16(vecTmp2, vecTmp1);
+  __m128i equalright = _mm_cmpeq_epi16(vecTmp2, newval);
+  __m128i equalleftoright = _mm_or_si128(equalleft, equalright);
+  int M =
+      _mm_movemask_epi8(_mm_packs_epi16(equalleftoright, _mm_setzero_si128()));
+  int numberofnewvalues = 8 - _mm_popcnt_u32(M);
+  __m128i key = _mm_lddqu_si128((const __m128i *)uniqshuf + M);
+  __m128i val = _mm_shuffle_epi8(vecTmp2, key);
+  _mm_storeu_si128((__m128i *)output, val);
+  return numberofnewvalues;
+}
+
+// working in-place, this function overwrites the repeated values
+// could be avoided? Warning: assumes len > 0
+static inline uint32_t unique_xor(uint16_t *out, uint32_t len) {
+  uint32_t pos = 1;
+  for (uint32_t i = 1; i < len; ++i) {
+    if (out[i] != out[i - 1]) {
+      out[pos++] = out[i];
+    } else
+      pos--; // if it is identical to previous, delete it
+  }
+  return pos;
+}
+
+// a one-pass SSE xor algorithm
+uint32_t xor_vector16(const uint16_t *__restrict__ array1, uint32_t length1,
+                      const uint16_t *__restrict__ array2, uint32_t length2,
+                      uint16_t *__restrict__ output) {
+  if ((length1 < 8) || (length2 < 8)) {
+    return xor_uint16(array1, length1, array2, length2, output);
+  }
+  __m128i vA, vB, V, vecMin, vecMax;
+  __m128i laststore;
+  uint16_t *initoutput = output;
+  uint32_t len1 = length1 / 8;
+  uint32_t len2 = length2 / 8;
+  uint32_t pos1 = 0;
+  uint32_t pos2 = 0;
+  // we start the machine
+  vA = _mm_lddqu_si128((const __m128i *)array1 + pos1);
+  pos1++;
+  vB = _mm_lddqu_si128((const __m128i *)array2 + pos2);
+  pos2++;
+  sse_merge(&vA, &vB, &vecMin, &vecMax);
+  laststore = _mm_set1_epi16(-1);
+  uint16_t buffer[17];
+  output += store_unique_xor(laststore, vecMin, output);
+
+  laststore = vecMin;
+  if ((pos1 < len1) && (pos2 < len2)) {
+    uint16_t curA, curB;
+    curA = array1[8 * pos1];
+    curB = array2[8 * pos2];
+    while (true) {
+      if (curA <= curB) {
+        V = _mm_lddqu_si128((const __m128i *)array1 + pos1);
+        pos1++;
+        if (pos1 < len1) {
+          curA = array1[8 * pos1];
+        } else {
+          break;
+        }
+      } else {
+        V = _mm_lddqu_si128((const __m128i *)array2 + pos2);
+        pos2++;
+        if (pos2 < len2) {
+          curB = array2[8 * pos2];
+        } else {
+          break;
+        }
+      }
+      sse_merge(&V, &vecMax, &vecMin, &vecMax);
+      // conditionally stores the last value of laststore as well as all but the
+      // last value of vecMin
+      output += store_unique_xor(laststore, vecMin, output);
+      laststore = vecMin;
+    }
+    sse_merge(&V, &vecMax, &vecMin, &vecMax);
+    // conditionally stores the last value of laststore as well as all but the
+    // last value of vecMin
+    output += store_unique_xor(laststore, vecMin, output);
+    laststore = vecMin;
+  }
+  uint32_t len = (uint32_t)(output - initoutput);
+
+  // we finish the rest off using a scalar algorithm
+  // could be improved?
+  // conditionally stores the last value of laststore as well as all but the
+  // last value of vecMax,
+  // we store to "buffer"
+  int leftoversize = store_unique_xor(laststore, vecMax, buffer);
+  uint16_t vec7 = _mm_extract_epi16(vecMax, 7);
+  uint16_t vec6 = _mm_extract_epi16(vecMax, 6);
+  if (vec7 != vec6)
+    buffer[leftoversize++] = vec7;
+  if (pos1 == len1) {
+
+    memcpy(buffer + leftoversize, array1 + 8 * pos1,
+           (length1 - 8 * len1) * sizeof(uint16_t));
+    leftoversize += length1 - 8 * len1;
+    if (leftoversize == 0) { // trivial case
+      memcpy(output, array2 + 8 * pos2,
+             (length2 - 8 * pos2) * sizeof(uint16_t));
+      len += (length2 - 8 * pos2);
+    } else {
+
+      qsort(buffer, leftoversize, sizeof(uint16_t), uint16_compare);
+      leftoversize = unique_xor(buffer, leftoversize);
+      len += xor_uint16(buffer, leftoversize, array2 + 8 * pos2,
+                        length2 - 8 * pos2, output);
+    }
+  } else {
+    memcpy(buffer + leftoversize, array2 + 8 * pos2,
+           (length2 - 8 * len2) * sizeof(uint16_t));
+    leftoversize += length2 - 8 * len2;
+    if (leftoversize == 0) { // trivial case
+      memcpy(output, array1 + 8 * pos1,
+             (length1 - 8 * pos1) * sizeof(uint16_t));
+      len += (length1 - 8 * pos1);
+    } else {
+      qsort(buffer, leftoversize, sizeof(uint16_t), uint16_compare);
+      leftoversize = unique_xor(buffer, leftoversize);
+      len += xor_uint16(buffer, leftoversize, array1 + 8 * pos1,
+                        length1 - 8 * pos1, output);
+    }
+  }
+  return len;
+}
+
+/**
+ * End of SIMD 16-bit XOR code
+ */
+
+
 #endif  // IS_X64
 
 size_t union_uint32(const uint32_t *set_1, size_t size_1, const uint32_t *set_2,
@@ -2146,6 +2496,9 @@ void bitset_flip_list(void *bitset, const uint16_t *list, uint64_t length) {
 #include <stdio.h>
 #include <stdlib.h>
 
+extern inline uint16_t array_container_minimum(const array_container_t *arr) ;
+extern inline uint16_t array_container_maximum(const array_container_t *arr);
+extern inline int array_container_rank(const array_container_t *arr, uint16_t x) ;
 extern inline bool array_container_contains(const array_container_t *arr,
                                              uint16_t pos);
 extern int array_container_cardinality(const array_container_t *array);
@@ -2194,6 +2547,18 @@ array_container_t *array_container_clone(const array_container_t *src) {
 
     return newcontainer;
 }
+
+int array_container_shrink_to_fit(array_container_t *src) {
+	if(src->cardinality == src->capacity) return 0; // nothing to do
+	int savings = src->capacity -  src->cardinality;
+	src->capacity = src->cardinality;
+    uint16_t *oldarray = src->array;
+    src->array =
+        (uint16_t *)realloc(oldarray, src->capacity * sizeof(uint16_t));
+    if (src->array == NULL) free(oldarray); // should never happen?
+    return savings;
+}
+
 
 /* Free memory. */
 void array_container_free(array_container_t *arr) {
@@ -2275,7 +2640,7 @@ void array_container_union(const array_container_t *array_1,
 
     if (out->capacity < max_cardinality)
         array_container_grow(out, max_cardinality, INT32_MAX, false);
-#ifdef ROARING_VECTOR_UNION_ENABLED
+#ifdef ROARING_VECTOR_OPERATIONS_ENABLED
     // compute union with smallest array first
     if (card_1 < card_2) {
         out->cardinality = union_vector16(array_1->array, card_1,
@@ -2296,64 +2661,6 @@ void array_container_union(const array_container_t *array_1,
 #endif
 }
 
-/* helper. a_out must be a valid array container with adequate capacity.
- * and may be same as a1.
- * Returns the cardinality of the output container. Based on Java
- * implementation Util.unsignedDifference
- */
-
-static int array_array_array_subtract(const array_container_t *a1,
-                                      const array_container_t *a2,
-                                      array_container_t *a_out) {
-    int out_card = 0;
-    int k1 = 0, k2 = 0;
-    int length1 = a1->cardinality, length2 = a2->cardinality;
-
-    if (length1 == 0) return 0;
-
-    if (length2 == 0) {
-        if (a1 != a_out)
-            memcpy(a_out->array, a1->array, sizeof(uint16_t) * length1);
-        return length1;
-    }
-
-    uint16_t s1 = a1->array[k1];
-    uint16_t s2 = a2->array[k2];
-
-    while (true) {
-        if (s1 < s2) {
-            a_out->array[out_card++] = s1;
-            ++k1;
-            if (k1 >= length1) {
-                break;
-            }
-            s1 = a1->array[k1];
-        } else if (s1 == s2) {
-            ++k1;
-            ++k2;
-            if (k1 >= length1) {
-                break;
-            }
-            if (k2 >= length2) {
-                memmove(a_out->array + out_card, a1->array + k1,
-                        sizeof(uint16_t) * (length1 - k1));
-                return out_card + length1 - k1;
-            }
-            s1 = a1->array[k1];
-            s2 = a2->array[k2];
-        } else {  // if (val1>val2)
-            ++k2;
-            if (k2 >= length2) {
-                memmove(a_out->array + out_card, a1->array + k1,
-                        sizeof(uint16_t) * (length1 - k1));
-                return out_card + length1 - k1;
-            }
-            s2 = a2->array[k2];
-        }
-    }
-    return out_card;
-}
-
 /* Computes the  difference of array1 and array2 and write the result
  * to array out.
  * Array out does not need to be distinct from array_1
@@ -2363,7 +2670,11 @@ void array_container_andnot(const array_container_t *array_1,
                             array_container_t *out) {
     if (out->capacity < array_1->cardinality)
         array_container_grow(out, array_1->cardinality, INT32_MAX, false);
-    out->cardinality = array_array_array_subtract(array_1, array_2, out);
+#ifdef ROARING_VECTOR_OPERATIONS_ENABLED
+    out->cardinality = difference_vector16(array_1->array, array_1->cardinality, array_2->array, array_2->cardinality, out->array);
+#else
+    out->cardinality = difference_uint16(array_1->array, array_1->cardinality, array_2->array, array_2->cardinality, out->array);
+#endif
 }
 
 /* Computes the symmetric difference of array1 and array2 and write the
@@ -2379,34 +2690,11 @@ void array_container_xor(const array_container_t *array_1,
 
     if (out->capacity < max_cardinality)
         array_container_grow(out, max_cardinality, INT32_MAX, false);
-
-    // TODO something clever like the AVX union in array_util.c
-    // except where *both* occurrences of a duplicate in a sorted sequence
-    // are removed.
-
-    // just a merge for now (see TODO)
-    int pos1 = 0, pos2 = 0, pos_out = 0;
-    while (pos1 < card_1 && pos2 < card_2) {
-        const uint16_t v1 = array_1->array[pos1];
-        const uint16_t v2 = array_2->array[pos2];
-        if (v1 == v2) {
-            ++pos1;
-            ++pos2;
-            continue;
-        }
-        if (v1 < v2) {
-            out->array[pos_out++] = v1;
-            ++pos1;
-        } else {
-            out->array[pos_out++] = v2;
-            ++pos2;
-        }
-    }
-    // todo: memcpys instead
-    while (pos1 < card_1) out->array[pos_out++] = array_1->array[pos1++];
-    while (pos2 < card_2) out->array[pos_out++] = array_2->array[pos2++];
-
-    out->cardinality = pos_out;
+#ifdef ROARING_VECTOR_OPERATIONS_ENABLED
+    out->cardinality = xor_vector16(array_1->array, array_1->cardinality, array_2->array, array_2->cardinality, out->array);
+#else
+    out->cardinality = xor_uint16(array_1->array, array_1->cardinality, array_2->array, array_2->cardinality, out->array);
+#endif
 }
 
 static inline int32_t minimum_int32(int32_t a, int32_t b) {
@@ -2496,9 +2784,9 @@ void array_container_printf_as_uint32_array(const array_container_t *v,
     if (v->cardinality == 0) {
         return;
     }
-    printf("%d", v->array[0] + base);
+    printf("%u", v->array[0] + base);
     for (int i = 1; i < v->cardinality; ++i) {
-        printf(",%d", v->array[i] + base);
+        printf(",%u", v->array[i] + base);
     }
 }
 
@@ -2547,6 +2835,32 @@ bool array_container_equals(array_container_t *container1,
         if (container1->array[i] != container2->array[i]) return false;
     }
     return true;
+}
+
+bool array_container_is_subset(array_container_t *container1,
+                            array_container_t *container2) {
+    if (container1->cardinality > container2->cardinality) {
+        return false;
+    }
+    int i1 = 0, i2 = 0;
+    while(i1 < container1->cardinality && i2 < container2->cardinality) {
+        if(container1->array[i1] == container2->array[i2]) {
+            i1++;
+            i2++;
+        }
+        else if(container1->array[i1] > container2->array[i2]) {
+            i2++;
+        }
+        else { // container1->array[i1] < container2->array[i2]
+            return false;
+        }
+    }
+    if(i1 == container1->cardinality) {
+        return true;
+    }
+    else {
+        return false;
+    }
 }
 
 int32_t array_container_read(int32_t cardinality, array_container_t *container,
@@ -2615,6 +2929,14 @@ bool array_container_iterate(const array_container_t *cont, uint32_t base,
                              roaring_iterator iterator, void *ptr) {
     for (int i = 0; i < cont->cardinality; i++)
         if (!iterator(cont->array[i] + base, ptr)) return false;
+    return true;
+}
+
+bool array_container_iterate64(const array_container_t *cont, uint32_t base,
+                               roaring_iterator64 iterator,
+                               uint64_t high_bits, void *ptr) {
+    for (int i = 0; i < cont->cardinality; i++)
+        if (!iterator(high_bits | (uint64_t)(cont->array[i] + base), ptr)) return false;
     return true;
 }
 /* end file src/containers/array.c */
@@ -2860,30 +3182,6 @@ int bitset_container_##opname##_justcard(const bitset_container_t *src_1, \
 
 
 
-
-
-/*
-int bitset_container_##opname(const bitset_container_t *src_1,          \
-                              const bitset_container_t *src_2,          \
-                              bitset_container_t *dst) {                \
-    const __m256i *array_1 = (const __m256i *) src_1->array;            \
-    const __m256i *array_2 = (const __m256i *) src_2->array;            \
-    __m256i *out = (__m256i *) dst->array;                              \
-    dst->cardinality = avx2_harley_seal_popcount256andstore_##opname(array_1,\
-    		array_2, out,BITSET_CONTAINER_SIZE_IN_WORDS / (WORDS_IN_AVX2_REG));\
-    return dst->cardinality;                                            \
-}                                                                       \
-*/
-
-
-/*int bitset_container_##opname##_justcard(const bitset_container_t *src_1, \
-                              const bitset_container_t *src_2) {        \
-    const __m256i *data1 = (const __m256i *) src_1->array;            \
-    const __m256i *data2 = (const __m256i *) src_2->array;            \
-    return avx2_harley_seal_popcount256_##opname(data1,                \
-    		data2, BITSET_CONTAINER_SIZE_IN_WORDS / (WORDS_IN_AVX2_REG));\
-}*/
-
 #else /* not USEAVX  */
 
 #define BITSET_CONTAINER_FN(opname, opsymbol, avxintrinsic)               \
@@ -2970,10 +3268,10 @@ void bitset_container_printf(const bitset_container_t * v) {
 			uint64_t t = w & -w;
 			int r = __builtin_ctzll(w);
 			if(iamfirst) {// predicted to be false
-				printf("%d",base + r);
+				printf("%u",base + r);
 				iamfirst = false;
 			} else {
-				printf(",%d",base + r);
+				printf(",%u",base + r);
 			}
 			w ^= t;
 		}
@@ -2994,10 +3292,10 @@ void bitset_container_printf_as_uint32_array(const bitset_container_t * v, uint3
 			uint64_t t = w & -w;
 			int r = __builtin_ctzll(w);
 			if(iamfirst) {// predicted to be false
-				printf("%d", r + base);
+				printf("%u", r + base);
 				iamfirst = false;
 			} else {
-				printf(",%d",r + base);
+				printf(",%u",r + base);
 			}
 			w ^= t;
 		}
@@ -3086,6 +3384,20 @@ bool bitset_container_iterate(const bitset_container_t *cont, uint32_t base, roa
   return true;
 }
 
+bool bitset_container_iterate64(const bitset_container_t *cont, uint32_t base, roaring_iterator64 iterator, uint64_t high_bits, void *ptr) {
+  for (int32_t i = 0; i < BITSET_CONTAINER_SIZE_IN_WORDS; ++i ) {
+    uint64_t w = cont->array[i];
+    while (w != 0) {
+      uint64_t t = w & -w;
+      int r = __builtin_ctzll(w);
+      if(!iterator(high_bits | (uint64_t)(r + base), ptr)) return false;
+      w ^= t;
+    }
+    base += 64;
+  }
+  return true;
+}
+
 
 bool bitset_container_equals(bitset_container_t *container1, bitset_container_t *container2) {
 	if((container1->cardinality != BITSET_UNKNOWN_CARDINALITY) && (container2->cardinality != BITSET_UNKNOWN_CARDINALITY)) {
@@ -3095,6 +3407,21 @@ bool bitset_container_equals(bitset_container_t *container1, bitset_container_t 
 	}
 	for(int32_t i = 0; i < BITSET_CONTAINER_SIZE_IN_WORDS; ++i ) {
 		if(container1->array[i] != container2->array[i]) {
+			return false;
+		}
+	}
+	return true;
+}
+
+bool bitset_container_is_subset(bitset_container_t *container1,
+                          bitset_container_t *container2) {
+    if((container1->cardinality != BITSET_UNKNOWN_CARDINALITY) && (container2->cardinality != BITSET_UNKNOWN_CARDINALITY)) {
+        if(container1->cardinality > container2->cardinality) {
+            return false;
+        }
+    }
+    for(int32_t i = 0; i < BITSET_CONTAINER_SIZE_IN_WORDS; ++i ) {
+		if((container1->array[i] & container2->array[i]) != container1->array[i]) {
 			return false;
 		}
 	}
@@ -3130,6 +3457,49 @@ bool bitset_container_select(const bitset_container_t *container, uint32_t *star
     }
     assert(false);
     __builtin_unreachable();
+}
+
+
+/* Returns the smallest value (assumes not empty) */
+uint16_t bitset_container_minimum(const bitset_container_t *container) {
+  for (int32_t i = 0; i < BITSET_CONTAINER_SIZE_IN_WORDS; ++i ) {
+    uint64_t w = container->array[i];
+    while (w != 0) {
+      int r = __builtin_ctzll(w);
+      return r + i * 64;
+    }
+  }
+  return UINT16_MAX;
+}
+
+/* Returns the largest value (assumes not empty) */
+uint16_t bitset_container_maximum(const bitset_container_t *container) {
+  for (int32_t i = BITSET_CONTAINER_SIZE_IN_WORDS - 1; i > 0; --i ) {
+    uint64_t w = container->array[i];
+    if (w != 0) {
+      int r = __builtin_clzll(w);
+      return i * 64 + 63  - r;
+    }
+  }
+  return 0;
+}
+
+/* Returns the number of values equal or smaller than x */
+int bitset_container_rank(const bitset_container_t *container, uint16_t x) {
+  uint32_t x32 = x;
+  int sum = 0;
+  uint32_t k = 0;
+  for (; k + 63 <= x32; k += 64)  {
+    sum += hamming(container->array[k / 64]);
+  }
+  // at this point, we have covered everything up to k, k not included.
+  // we have that k < x, but not so large that k+63<=x
+  // k is a power of 64
+  int bitsleft = x32 - k + 1;// will be in [0,64)
+  uint64_t leftoverword = container->array[k / 64];// k / 64 should be within scope
+  leftoverword = leftoverword & ((UINT64_C(1) << bitsleft) - 1);
+  sum += hamming(leftoverword);
+  return sum;
 }
 /* end file src/containers/bitset.c */
 /* begin file src/containers/containers.c */
@@ -4286,12 +4656,21 @@ void array_bitset_container_intersection(const array_container_t *src_1,
     int32_t newcard = 0;  // dst could be src_1
     const int32_t origcard = src_1->cardinality;
     for (int i = 0; i < origcard; ++i) {
-        // could probably be vectorized
         uint16_t key = src_1->array[i];
-        // next bit could be branchless
-        if (bitset_container_contains(src_2, key)) {
-            dst->array[newcard++] = key;
-        }
+        // this branchless approach is much faster...
+        dst->array[newcard] = key;
+        newcard +=  bitset_container_contains(src_2, key); 
+        /**
+         * we could do it this way instead...
+         * if (bitset_container_contains(src_2, key)) {
+         * dst->array[newcard++] = key;
+         * }
+         * but if the result is unpredictible, the processor generates
+         * many mispredicted branches.
+         * Difference can be huge (from 3 cycles when predictible all the way
+         * to 16 cycles when unpredictible.
+         * See https://github.com/lemire/Code-used-on-Daniel-Lemire-s-blog/blob/master/extra/bitset/c/arraybitsetintersection.c
+         */
     }
     dst->cardinality = newcard;
 }
@@ -4796,6 +5175,141 @@ int run_container_negation_range_inplace(run_container_t *src,
     return return_typecode;
 }
 /* end file src/containers/mixed_negation.c */
+/* begin file src/containers/mixed_subset.c */
+
+bool array_container_is_subset_bitset(array_container_t* container1,
+                                  bitset_container_t* container2) {
+    if (container2->cardinality != BITSET_UNKNOWN_CARDINALITY) {
+        if (container2->cardinality < container1->cardinality) {
+            return false;
+        }
+    }
+    for (int i = 0; i < container1->cardinality; ++i) {
+        if(!bitset_container_contains(container2, container1->array[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool run_container_is_subset_array(run_container_t* container1,
+                                array_container_t* container2) {
+    if (run_container_cardinality(container1) > container2->cardinality)
+        return false;
+    int32_t start_pos = -1, stop_pos = -1;
+    for (int i = 0; i < container1->n_runs; ++i) {
+        int32_t start = container1->runs[i].value;
+        int32_t stop = start+container1->runs[i].length;
+        start_pos = advanceUntil(container2->array, stop_pos, container2->cardinality, start);
+        stop_pos = advanceUntil(container2->array, stop_pos, container2->cardinality, stop);
+        if(start_pos == container2->cardinality) {
+            return false;
+        }
+        else if(stop_pos-start_pos != stop-start ||
+            container2->array[start_pos] != start || container2->array[stop_pos] != stop) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool array_container_is_subset_run(array_container_t* container1,
+                                run_container_t* container2) {
+    if (container1->cardinality > run_container_cardinality(container2))
+        return false;
+    int i_array = 0, i_run = 0;
+    while(i_array < container1->cardinality && i_run < container2->n_runs) {
+        uint32_t start = container2->runs[i_run].value;
+        uint32_t stop = start+container2->runs[i_run].length;
+        if(container1->array[i_array] < start) {
+            return false;
+        }
+        else if (container1->array[i_array] > stop) {
+            i_run ++;
+        }
+        else { // the value of the array is in the run
+            i_array++;
+        }
+    }
+    if(i_array == container1->cardinality) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+bool run_container_is_subset_bitset(run_container_t* container1,
+                                 bitset_container_t* container2) {
+    // todo: this code could be much faster
+    if (container2->cardinality != BITSET_UNKNOWN_CARDINALITY) {
+        if (container2->cardinality < run_container_cardinality(container1)) {
+            return false;
+        }
+    } else {
+        int32_t card = bitset_container_compute_cardinality(
+            container2);  // modify container2?
+        if (card < run_container_cardinality(container1)) {
+            return false;
+        }
+    }
+    for (int i = 0; i < container1->n_runs; ++i) {
+        uint32_t run_start = container1->runs[i].value;
+        uint32_t le = container1->runs[i].length;
+        for (uint32_t j = run_start; j <= run_start + le; ++j) {
+            if (!bitset_container_contains(container2, j)) {
+                return false;
+            }
+        }
+    }
+    return true;
+ }
+
+bool bitset_container_is_subset_run(bitset_container_t* container1,
+                              run_container_t* container2) {
+    // todo: this code could be much faster
+    if (container1->cardinality != BITSET_UNKNOWN_CARDINALITY) {
+        if (container1->cardinality > run_container_cardinality(container2)) {
+            return false;
+        }
+    }
+    int32_t i_bitset=0, i_run=0;
+    while(i_bitset < BITSET_CONTAINER_SIZE_IN_WORDS && i_run < container2->n_runs) {
+        uint64_t w = container1->array[i_bitset];
+        while (w != 0 && i_run < container2->n_runs) {
+            uint32_t start = container2->runs[i_run].value;
+            uint32_t stop = start+container2->runs[i_run].length;
+            uint64_t t = w & -w;
+            uint16_t r = i_bitset * 64 + __builtin_ctzll(w);
+            if (r < start) {
+                return false;
+            }
+            else if(r > stop) {
+                i_run++;
+                continue;
+            }
+            else {
+                w ^= t;
+            }
+        }
+        if(w == 0) {
+            i_bitset++;
+        }
+        else {
+            return false;
+        }
+    }
+    if(i_bitset < BITSET_CONTAINER_SIZE_IN_WORDS) {
+        // terminated iterating on the run containers, check that rest of bitset is empty
+        for(; i_bitset < BITSET_CONTAINER_SIZE_IN_WORDS ; i_bitset++) {
+            if(container1->array[i_bitset] != 0) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+/* end file src/containers/mixed_subset.c */
 /* begin file src/containers/mixed_union.c */
 /*
  * mixed_union.c
@@ -5346,6 +5860,8 @@ int run_run_container_ixor(run_container_t *src_1, const run_container_t *src_2,
 #include <x86intrin.h>
 #endif
 
+extern inline uint16_t run_container_minimum(const run_container_t *run);
+extern inline uint16_t run_container_maximum(const run_container_t *run);
 extern inline int32_t interleavedBinarySearch(const rle16_t *array,
                                       int32_t lenarray, uint16_t ikey);
 extern inline bool run_container_contains(const run_container_t *run,
@@ -5422,6 +5938,16 @@ run_container_t *run_container_create_given_capacity(int32_t size) {
     return run;
 }
 
+int run_container_shrink_to_fit(run_container_t *src) {
+	if(src->n_runs == src->capacity) return 0; // nothing to do
+	int savings = src->capacity -  src->n_runs;
+	src->capacity = src->n_runs;
+    rle16_t *oldruns = src->runs;
+    src->runs =
+        (rle16_t *)realloc(oldruns, src->capacity * sizeof(rle16_t));
+    if (src->runs == NULL) free(oldruns); // should never happen?
+    return savings;
+}
 /* Create a new run container. Return NULL in case of failure. */
 run_container_t *run_container_create(void) {
     return run_container_create_given_capacity(RUN_DEFAULT_INIT_SIZE);
@@ -5463,7 +5989,7 @@ int run_container_cardinality(const run_container_t *run) {
         }
         // a store might be faster than extract?
         uint32_t buffer[sizeof(__m256i) / sizeof(rle16_t)];
-        _mm256_store_si256((__m256i *)buffer, total);
+        _mm256_storeu_si256((__m256i *)buffer, total);
         sum += (buffer[0] + buffer[1]) + (buffer[2] + buffer[3]) +
                (buffer[4] + buffer[5]) + (buffer[6] + buffer[7]);
     }
@@ -5861,13 +6387,13 @@ void run_container_printf_as_uint32_array(const run_container_t *cont,
     {
         uint32_t run_start = base + cont->runs[0].value;
         uint16_t le = cont->runs[0].length;
-        printf("%d", run_start);
-        for (uint32_t j = 1; j <= le; ++j) printf(",%d", run_start + j);
+        printf("%u", run_start);
+        for (uint32_t j = 1; j <= le; ++j) printf(",%u", run_start + j);
     }
     for (int32_t i = 1; i < cont->n_runs; ++i) {
         uint32_t run_start = base + cont->runs[i].value;
         uint16_t le = cont->runs[i].length;
-        for (uint32_t j = 0; j <= le; ++j) printf(",%d", run_start + j);
+        for (uint32_t j = 0; j <= le; ++j) printf(",%u", run_start + j);
     }
 }
 
@@ -5962,6 +6488,19 @@ bool run_container_iterate(const run_container_t *cont, uint32_t base,
     return true;
 }
 
+bool run_container_iterate64(const run_container_t *cont, uint32_t base,
+                             roaring_iterator64 iterator,
+                             uint64_t high_bits, void *ptr) {
+    for (int i = 0; i < cont->n_runs; ++i) {
+        uint32_t run_start = base + cont->runs[i].value;
+        uint16_t le = cont->runs[i].length;
+
+        for (int j = 0; j <= le; ++j)
+            if (!iterator(high_bits | (uint64_t)(run_start + j), ptr)) return false;
+    }
+    return true;
+}
+
 bool run_container_equals(run_container_t *container1,
                           run_container_t *container2) {
     if (container1->n_runs != container2->n_runs) {
@@ -5973,6 +6512,38 @@ bool run_container_equals(run_container_t *container1,
             return false;
     }
     return true;
+}
+
+bool run_container_is_subset(run_container_t *container1,
+                        run_container_t *container2){
+    int i1 = 0, i2 = 0;
+    while(i1 < container1->n_runs && i2 < container2->n_runs) {
+        int start1 = container1->runs[i1].value;
+        int stop1 = start1 + container1->runs[i1].length;
+        int start2 = container2->runs[i2].value;
+        int stop2 = start2 + container2->runs[i2].length;
+        if(start1 < start2) {
+            return false;
+        }
+        else { // start1 >= start2
+            if(stop1 < stop2) {
+                i1++;
+            }
+            else if(stop1 == stop2) {
+                i1++;
+                i2++;
+            }
+            else { // stop1 > stop2
+                i2++;
+            }
+        }
+    }
+    if(i1 == container1->n_runs) {
+        return true;
+    }
+    else {
+        return false;
+    }
 }
 
 // TODO: write smart_append_exclusive version to match the overloaded 1 param
@@ -6043,6 +6614,23 @@ bool run_container_select(const run_container_t *container,
     }
     return false;
 }
+
+int run_container_rank(const run_container_t *container, uint16_t x) {
+  int sum = 0;
+  uint32_t x32 = x;
+  for (int i = 0; i < container->n_runs; i++) {
+    uint32_t startpoint = container->runs[i].value;
+    uint32_t length = container->runs[i].length;
+    uint32_t endpoint = length + startpoint;
+    if(x <= endpoint) {
+      if(x < startpoint) break;
+      return sum + (x32 - startpoint) + 1;
+    } else {
+      sum += length + 1;
+    }
+  }
+  return sum;
+}
 /* end file src/containers/run.c */
 /* begin file src/roaring.c */
 #include <assert.h>
@@ -6052,6 +6640,7 @@ bool run_container_select(const run_container_t *container,
 #include <string.h>
 
 extern inline bool roaring_bitmap_contains(const roaring_bitmap_t *r, uint32_t val);
+extern inline bool roaring_bitmap_is_strict_subset(const roaring_bitmap_t *ra1, const roaring_bitmap_t *ra2);
 
 
 // this is like roaring_bitmap_add, but it populates pointer arguments in such a way
@@ -6223,7 +6812,7 @@ void roaring_bitmap_printf_describe(const roaring_bitmap_t *ra) {
         if (ra->high_low_container.typecodes[i] ==
             SHARED_CONTAINER_TYPE_CODE) {
             printf(
-                "(shared count = %d )",
+                "(shared count = %u )",
                 ((shared_container_t *)(ra->high_low_container.containers[i]))
                     ->counter);
         }
@@ -6514,15 +7103,15 @@ roaring_bitmap_t *roaring_bitmap_or(const roaring_bitmap_t *x1,
     uint8_t container_result_type = 0;
     const int length1 = x1->high_low_container.size,
               length2 = x2->high_low_container.size;
-    roaring_bitmap_t *answer =
-        roaring_bitmap_create_with_capacity(length1 + length2);
-    answer->copy_on_write = x1->copy_on_write && x2->copy_on_write;
     if (0 == length1) {
         return roaring_bitmap_copy(x2);
     }
     if (0 == length2) {
         return roaring_bitmap_copy(x1);
     }
+    roaring_bitmap_t *answer =
+        roaring_bitmap_create_with_capacity(length1 + length2);
+    answer->copy_on_write = x1->copy_on_write && x2->copy_on_write;
     int pos1 = 0, pos2 = 0;
     uint8_t container_type_1, container_type_2;
     uint16_t s1 = ra_get_key_at_index(& x1->high_low_container, pos1);
@@ -6608,19 +7197,21 @@ void roaring_bitmap_or_inplace(roaring_bitmap_t *x1,
         if (s1 == s2) {
             void *c1 = ra_get_container_at_index(& x1->high_low_container, pos1,
                                                  &container_type_1);
-            c1 = get_writable_copy_if_shared(c1, &container_type_1);
+            if(!container_is_full(c1,container_type_1)) {
+				c1 = get_writable_copy_if_shared(c1, &container_type_1);
 
-            void *c2 = ra_get_container_at_index(& x2->high_low_container, pos2,
-                                                 &container_type_2);
-            void *c = container_ior(c1, container_type_1, c2, container_type_2,
-                                    &container_result_type);
-            if (c != c1) {  // in this instance a new container was created, and
-                            // we need to free the old one
-                container_free(c1, container_type_1);
+				void *c2 = ra_get_container_at_index(& x2->high_low_container, pos2,
+													 &container_type_2);
+				void *c = container_ior(c1, container_type_1, c2, container_type_2,
+										&container_result_type);
+				if (c != c1) {  // in this instance a new container was created, and
+								// we need to free the old one
+					container_free(c1, container_type_1);
+				}
+
+				ra_set_container_at_index(& x1->high_low_container, pos1, c,
+										  container_result_type);
             }
-
-            ra_set_container_at_index(& x1->high_low_container, pos1, c,
-                                      container_result_type);
             ++pos1;
             ++pos2;
             if (pos1 == length1) break;
@@ -6664,15 +7255,15 @@ roaring_bitmap_t *roaring_bitmap_xor(const roaring_bitmap_t *x1,
     uint8_t container_result_type = 0;
     const int length1 = x1->high_low_container.size,
               length2 = x2->high_low_container.size;
-    roaring_bitmap_t *answer =
-        roaring_bitmap_create_with_capacity(length1 + length2);
-    answer->copy_on_write = x1->copy_on_write && x2->copy_on_write;
     if (0 == length1) {
         return roaring_bitmap_copy(x2);
     }
     if (0 == length2) {
         return roaring_bitmap_copy(x1);
     }
+    roaring_bitmap_t *answer =
+        roaring_bitmap_create_with_capacity(length1 + length2);
+    answer->copy_on_write = x1->copy_on_write && x2->copy_on_write;
     int pos1 = 0, pos2 = 0;
     uint8_t container_type_1, container_type_2;
     uint16_t s1 = ra_get_key_at_index(& x1->high_low_container, pos1);
@@ -6755,7 +7346,7 @@ void roaring_bitmap_xor_inplace(roaring_bitmap_t *x1,
     }
 
     // XOR can have new containers inserted from x2, but can also
-    // lose containers when x1 and x2 are nonemtpy and identical.
+    // lose containers when x1 and x2 are nonempty and identical.
 
     int pos1 = 0, pos2 = 0;
     uint8_t container_type_1, container_type_2;
@@ -7006,6 +7597,19 @@ bool roaring_bitmap_run_optimize(roaring_bitmap_t *r) {
     return answer;
 }
 
+size_t roaring_bitmap_shrink_to_fit(roaring_bitmap_t *r) {
+    size_t answer = 0;
+    for (int i = 0; i < r->high_low_container.size; i++) {
+        uint8_t typecode_original;
+        void *c = ra_get_container_at_index(& r->high_low_container, i,
+                                            &typecode_original);
+        answer += container_shrink_to_fit(c, typecode_original);
+    }
+    answer += ra_shrink_to_fit(&r->high_low_container);
+    return answer;
+}
+
+
 /**
  *  Remove run-length encoding even when it is more space efficient
  *  return whether a change was applied
@@ -7114,7 +7718,151 @@ bool roaring_iterate(const roaring_bitmap_t *ra, roaring_iterator iterator,
     return true;
 }
 
-bool roaring_bitmap_equals(roaring_bitmap_t *ra1, roaring_bitmap_t *ra2) {
+bool roaring_iterate64(const roaring_bitmap_t *ra, roaring_iterator64 iterator,
+                       uint64_t high_bits, void *ptr) {
+    for (int i = 0; i < ra->high_low_container.size; ++i)
+        if (!container_iterate64(ra->high_low_container.containers[i], ra->high_low_container.typecodes[i],
+                ((uint32_t)ra->high_low_container.keys[i]) << 16, iterator,
+                high_bits, ptr)) {
+            return false;
+        }
+    return true;
+}
+
+
+
+/****
+* begin roaring_uint32_iterator_t
+*****/
+
+static bool loadfirstvalue(roaring_uint32_iterator_t * newit) {
+  newit->in_container_index = 0;
+  newit->run_index = 0;
+  newit->in_run_index = 0;
+  newit->current_value = 0;
+  if(newit->container_index >= newit->parent->high_low_container.size) {// otherwise nothing
+    newit->current_value =  UINT32_MAX;
+    return (newit->has_value = false);
+  }
+  // assume not empty
+  newit->has_value = true;
+  const void * container = newit->parent->high_low_container.containers[newit->container_index];
+  uint8_t typecode = newit->parent->high_low_container.typecodes[newit->container_index];
+  uint32_t highbits = ((uint32_t)newit->parent->high_low_container.keys[newit->container_index]) << 16;
+  container = container_unwrap_shared(container, &typecode);
+  uint32_t wordindex;
+  uint64_t word; // used for bitsets
+  switch (typecode) {
+            case BITSET_CONTAINER_TYPE_CODE:
+                wordindex = 0;
+                while( (  word = ((const bitset_container_t *)container)->array[wordindex]) == 0)
+                  wordindex++; // advance
+                // here "word" is non-zero
+                newit->in_container_index = wordindex * 64 + __builtin_ctzll(word);
+                newit->current_value = highbits | newit->in_container_index;
+                break;
+            case ARRAY_CONTAINER_TYPE_CODE:
+                newit->current_value = highbits | ((const array_container_t *)container)->array[0];
+                break;
+            case RUN_CONTAINER_TYPE_CODE:
+                newit->current_value = highbits | (((const run_container_t *)container)->runs[0].value);
+                break;
+            default:
+                // if this ever happens, bug!
+                assert(false);
+  }//switch (typecode)
+  return true;
+}
+
+roaring_uint32_iterator_t * roaring_create_iterator(const roaring_bitmap_t *ra) {
+  roaring_uint32_iterator_t * newit = (roaring_uint32_iterator_t *) malloc(sizeof(roaring_uint32_iterator_t));
+  if(newit == NULL) return NULL;
+  newit->parent = ra;
+  newit->container_index = 0;
+  newit->has_value = loadfirstvalue(newit);
+  return newit;
+}
+
+roaring_uint32_iterator_t * roaring_copy_uint32_iterator(const roaring_uint32_iterator_t * it) {
+  roaring_uint32_iterator_t * newit = (roaring_uint32_iterator_t *) malloc(sizeof(roaring_uint32_iterator_t));
+  newit->parent = it->parent;
+  newit->container_index = it->container_index;
+  newit->in_container_index = it->in_container_index;
+  newit->run_index = it->run_index;
+  newit->in_run_index = it->in_run_index;
+  newit->current_value = it->current_value;
+  newit->has_value = it->has_value;
+  return newit;
+}
+
+
+bool roaring_advance_uint32_iterator(roaring_uint32_iterator_t *it) {
+    if(it->container_index >= it->parent->high_low_container.size) {
+      return false;
+    }
+    // we assume that we are *not* pointing at the first value of a container
+    const void * container = it->parent->high_low_container.containers[it->container_index];
+    uint8_t typecode = it->parent->high_low_container.typecodes[it->container_index];
+    uint32_t highbits = ((uint32_t)it->parent->high_low_container.keys[it->container_index]) << 16;
+    container = container_unwrap_shared(container, &typecode);
+    uint32_t wordindex;  // used for bitsets
+    uint64_t word; // used for bitsets
+    switch (typecode) {
+            case BITSET_CONTAINER_TYPE_CODE:
+                it->in_container_index++;
+                wordindex = it->in_container_index / 64;
+                if(wordindex >= BITSET_CONTAINER_SIZE_IN_WORDS) break;
+                word =  ((const bitset_container_t *)container)->array[wordindex] & (UINT64_MAX << (it->in_container_index % 64));
+                // next part could be optimized/simplified
+                while ((word == 0) && (wordindex + 1 < BITSET_CONTAINER_SIZE_IN_WORDS)) {
+                  wordindex++;
+                  word =  ((const bitset_container_t *)container)->array[wordindex];
+                }
+                if(word != 0) {
+                  it->in_container_index = wordindex * 64 + __builtin_ctzll(word);
+                  it->current_value = highbits | it->in_container_index;
+                  return true;
+                }
+                break;
+            case ARRAY_CONTAINER_TYPE_CODE:
+                it->in_container_index++;
+                if(it->in_container_index < ((const array_container_t *)container)->cardinality) {
+                  it->current_value = highbits | ((const array_container_t *)container)->array[it->in_container_index];
+                  return true;
+                }
+                break;
+            case RUN_CONTAINER_TYPE_CODE:
+                it->in_run_index++;
+                if(it->in_run_index <= ((const run_container_t *)container)->runs[it->run_index].length) {
+                  it->current_value = highbits | (((const run_container_t *)container)->runs[it->run_index].value  + it->in_run_index);
+                  return true;
+                }
+                it->in_run_index = 0;
+                it->run_index++;
+                if(it->run_index < ((const run_container_t *)container)->n_runs) {
+                  it->current_value = highbits | (((const run_container_t *)container)->runs[it->run_index].value);
+                  return true;
+                }
+                break;
+            default:
+                // if this ever happens, bug!
+                assert(false);
+    }//switch (typecode)
+    // moving to next container
+    it->container_index++;
+    it->has_value = loadfirstvalue(it);
+    return it->has_value;
+}
+
+void roaring_free_uint32_iterator(roaring_uint32_iterator_t *it) {
+  free(it);
+}
+
+/****
+* end of roaring_uint32_iterator_t
+*****/
+
+bool roaring_bitmap_equals(const roaring_bitmap_t *ra1, const roaring_bitmap_t *ra2) {
     if (ra1->high_low_container.size != ra2->high_low_container.size) {
         return false;
     }
@@ -7131,6 +7879,39 @@ bool roaring_bitmap_equals(roaring_bitmap_t *ra1, roaring_bitmap_t *ra2) {
         }
     }
     return true;
+}
+
+bool roaring_bitmap_is_subset(const roaring_bitmap_t *ra1, const roaring_bitmap_t *ra2) {
+    const int length1 = ra1->high_low_container.size,
+              length2 = ra2->high_low_container.size;
+
+    int pos1 = 0, pos2 = 0;
+
+    while (pos1 < length1 && pos2 < length2) {
+        const uint16_t s1 = ra_get_key_at_index(& ra1->high_low_container, pos1);
+        const uint16_t s2 = ra_get_key_at_index(& ra2->high_low_container, pos2);
+
+        if (s1 == s2) {
+            uint8_t container_type_1, container_type_2;
+            void *c1 = ra_get_container_at_index(& ra1->high_low_container, pos1,
+                                                 &container_type_1);
+            void *c2 = ra_get_container_at_index(& ra2->high_low_container, pos2,
+                                                 &container_type_2);
+            bool subset = container_is_subset(c1, container_type_1, c2, container_type_2);
+            if(!subset)
+                return false;
+            ++pos1;
+            ++pos2;
+        } else if (s1 < s2) {  // s1 < s2
+            return false;
+        } else {  // s1 > s2
+            pos2 = ra_advance_until(& ra2->high_low_container, s1, pos2);
+        }
+    }
+    if(pos1 == length1)
+        return true;
+    else
+        return false;
 }
 
 static void insert_flipped_container(roaring_array_t *ans_arr,
@@ -7438,32 +8219,34 @@ void roaring_bitmap_lazy_or_inplace(roaring_bitmap_t *x1,
         if (s1 == s2) {
             void *c1 = ra_get_container_at_index(& x1->high_low_container, pos1,
                                                  &container_type_1);
-            if ((bitsetconversion == false) ||
-                (get_container_type(c1, container_type_1) ==
-                 BITSET_CONTAINER_TYPE_CODE)) {
-                c1 = get_writable_copy_if_shared(c1, &container_type_1);
-            } else {
-                // convert to bitset
-                void *oldc1 = c1;
-                uint8_t oldt1 = container_type_1;
-                c1 = (void *)container_unwrap_shared(c1, &container_type_1);
-                c1 = container_to_bitset(c1, container_type_1);
-                container_free(oldc1, oldt1);
-                container_type_1 = BITSET_CONTAINER_TYPE_CODE;
-            }
+            if(!container_is_full(c1,container_type_1)) {
+				if ((bitsetconversion == false) ||
+					(get_container_type(c1, container_type_1) ==
+					 BITSET_CONTAINER_TYPE_CODE)) {
+					c1 = get_writable_copy_if_shared(c1, &container_type_1);
+				} else {
+					// convert to bitset
+					void *oldc1 = c1;
+					uint8_t oldt1 = container_type_1;
+					c1 = (void *)container_unwrap_shared(c1, &container_type_1);
+					c1 = container_to_bitset(c1, container_type_1);
+					container_free(oldc1, oldt1);
+					container_type_1 = BITSET_CONTAINER_TYPE_CODE;
+				}
 
-            void *c2 = ra_get_container_at_index(& x2->high_low_container, pos2,
-                                                 &container_type_2);
-            void *c =
-                container_lazy_ior(c1, container_type_1, c2, container_type_2,
-                                   &container_result_type);
-            if (c != c1) {  // in this instance a new container was created, and
-                            // we need to free the old one
-                container_free(c1, container_type_1);
-            }
+				void *c2 = ra_get_container_at_index(& x2->high_low_container, pos2,
+													 &container_type_2);
+				void *c =
+					container_lazy_ior(c1, container_type_1, c2, container_type_2,
+									   &container_result_type);
+				if (c != c1) {  // in this instance a new container was created, and
+								// we need to free the old one
+					container_free(c1, container_type_1);
+				}
 
-            ra_set_container_at_index(& x1->high_low_container, pos1, c,
-                                      container_result_type);
+				ra_set_container_at_index(& x1->high_low_container, pos1, c,
+										  container_result_type);
+            }
             ++pos1;
             ++pos2;
             if (pos1 == length1) break;
@@ -7667,6 +8450,58 @@ void roaring_bitmap_repair_after_lazy(roaring_bitmap_t *ra) {
     }
 }
 
+/**
+* roaring_bitmap_rank returns the number of integers that are smaller or equal to x.
+*/
+uint64_t  roaring_bitmap_rank(const roaring_bitmap_t *bm, uint32_t x) {
+    uint64_t size = 0;
+    uint32_t xhigh = x >> 16;
+    for (int i = 0; i < bm->high_low_container.size; i++) {
+      uint32_t key = bm->high_low_container.keys[i];
+      if (xhigh > key) {
+        size += container_get_cardinality(bm->high_low_container.containers[i], bm->high_low_container.typecodes[i]);
+      } else if (xhigh == key) {
+        return size + container_rank(bm->high_low_container.containers[i], bm->high_low_container.typecodes[i], x & 0xFFFF);
+      } else {
+        return size;
+      }
+    }
+    return size;
+}
+
+
+/**
+* roaring_bitmap_smallest returns the smallest value in the set.
+* Returns UINT32_MAX if the set is empty.
+*/
+uint32_t roaring_bitmap_minimum(const roaring_bitmap_t *bm) {
+  if(bm->high_low_container.size > 0) {
+      void * container = bm->high_low_container.containers[0];
+      uint8_t typecode = bm->high_low_container.typecodes[0];
+      uint32_t key = bm->high_low_container.keys[0];
+      uint32_t lowvalue = container_minimum(container, typecode);
+      return lowvalue | (key << 16);
+  }
+  return UINT32_MAX;
+}
+
+
+/**
+* roaring_bitmap_smallest returns the greatest value in the set.
+* Returns 0 if the set is empty.
+*/
+uint32_t roaring_bitmap_maximum(const roaring_bitmap_t *bm) {
+  if(bm->high_low_container.size > 0) {
+      void * container = bm->high_low_container.containers[bm->high_low_container.size - 1];
+      uint8_t typecode = bm->high_low_container.typecodes[bm->high_low_container.size - 1];
+      uint32_t key = bm->high_low_container.keys[bm->high_low_container.size - 1];
+      uint32_t lowvalue = container_maximum(container, typecode);
+      return  lowvalue | (key << 16);
+  }
+  return 0;
+}
+
+
 bool roaring_bitmap_select(const roaring_bitmap_t *bm, uint32_t rank,
                            uint32_t *element) {
     void *container;
@@ -7734,6 +8569,7 @@ static bool realloc_array(roaring_array_t *ra, size_t new_capacity) {
     }*/
 	const size_t memoryneeded = new_capacity * (sizeof(uint16_t)+sizeof(void *)+sizeof(uint8_t));
 	void * bigalloc = malloc(memoryneeded);
+	void * oldbigalloc = ra->containers;
 	if(! bigalloc) return false;
 	void** newcontainers = (void **) bigalloc;
 	uint16_t * newkeys = (uint16_t *)(newcontainers + new_capacity);
@@ -7746,6 +8582,7 @@ static bool realloc_array(roaring_array_t *ra, size_t new_capacity) {
 	ra->keys = newkeys;
 	ra->typecodes = newtypecodes;
 	ra->allocation_size = new_capacity;
+	free(oldbigalloc);
     return true;
 }
 
@@ -7765,6 +8602,14 @@ bool ra_init_with_capacity(roaring_array_t *new_ra, uint32_t cap) {
 
     return true;
 }
+
+int ra_shrink_to_fit(roaring_array_t *ra) {
+	int savings = (ra->allocation_size - ra->size) * (sizeof(uint16_t)+sizeof(void *)+sizeof(uint8_t));
+	realloc_array(ra, ra->size);// assumes it succeeds
+	ra->allocation_size = ra->size;
+	return savings;
+}
+
 bool ra_init(roaring_array_t * t) {
 	return ra_init_with_capacity(t, INITIAL_CAPACITY);
 }
@@ -8215,7 +9060,7 @@ bool ra_portable_deserialize(roaring_array_t *answer, const char *buf) {
     buf += sizeof(uint32_t);
     if ((cookie & 0xFFFF) != SERIAL_COOKIE &&
         cookie != SERIAL_COOKIE_NO_RUNCONTAINER) {
-        fprintf(stderr, "I failed to find one of the right cookies. Found %d\n",
+        fprintf(stderr, "I failed to find one of the right cookies. Found %u\n",
                 cookie);
         return false;
     }
@@ -8419,7 +9264,7 @@ static roaring_bitmap_t *lazy_or_from_lazy_inputs(roaring_bitmap_t *x1,
             void *c;
 
             if ((container_type_2 == BITSET_CONTAINER_TYPE_CODE) &&
-                (container_type_2 != BITSET_CONTAINER_TYPE_CODE)) {
+                (container_type_1 != BITSET_CONTAINER_TYPE_CODE)) {
                 c = container_lazy_ior(c2, container_type_2, c1,
                                        container_type_1,
                                        &container_result_type);
