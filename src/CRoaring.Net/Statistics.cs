@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace CRoaring
+namespace CRoaring.Net
 {
     [StructLayout(LayoutKind.Sequential)]
     public struct Statistics
