@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -53,6 +52,11 @@ namespace CRoaring
             GC.SuppressFinalize(this);
         }
 
+        public RoaringBitmap Clone()
+        {
+            return new RoaringBitmap(NativeMethods.roaring_bitmap_copy(_pointer));
+        }
+
         //List operations
 
         public void Add(uint value)
@@ -73,6 +77,12 @@ namespace CRoaring
 
         public bool Contains(uint value)
             => NativeMethods.roaring_bitmap_contains(_pointer, value);
+
+        public bool Equals(RoaringBitmap bitmap)
+        {
+            if (bitmap == null) return false;
+            return NativeMethods.roaring_bitmap_equals(_pointer, bitmap._pointer);
+        }
 
         //Bitmap operations
 
@@ -143,9 +153,11 @@ namespace CRoaring
             => NativeMethods.roaring_bitmap_run_optimize(_pointer);
         public bool RemoveRunCompression()
             => NativeMethods.roaring_bitmap_remove_run_compression(_pointer);
+        public int ShrinkToFit()
+            => NativeMethods.roaring_bitmap_shrink_to_fit(_pointer);
 
         //Serialization
-        
+
         public void CopyTo(uint[] buffer)
             => NativeMethods.roaring_bitmap_to_uint32_array(_pointer, buffer);
 
@@ -177,102 +189,100 @@ namespace CRoaring
                     return new RoaringBitmap(NativeMethods.roaring_bitmap_portable_deserialize(buffer));
             }
         }
-        
 
-        //Other
+        //Iterators
 
-        public bool Equals(RoaringBitmap bitmap)
-        {
-            if (bitmap == null) return false;
-            return NativeMethods.roaring_bitmap_equals(_pointer, bitmap._pointer);
-        }
-
-        public RoaringBitmap Clone()
-        {
-            return new RoaringBitmap(NativeMethods.roaring_bitmap_copy(_pointer));
-        }
-
-        /*public void Print()
-            => NativeMethods.roaring_bitmap_printf(_pointer);*/
-        public Statistics GetStatistics()
-        {
-            Statistics stats;
-            NativeMethods.roaring_bitmap_statistics(_pointer, out stats);
-            return stats;
-        }
-
-        // Enumerators
         public IEnumerator<uint> GetEnumerator()
         {
-            var enumerator = new Enumerator();
-            Task.Run(() =>
+            ulong count = NativeMethods.roaring_bitmap_get_cardinality(_pointer);
+            if (count < 262144) //1MB
             {
-                try { NativeMethods.roaring_iterate(_pointer, enumerator.AddValue, IntPtr.Zero); }
-                finally { enumerator.Complete(); }
-            });
-            return enumerator;
+                uint[] values = new uint[count];
+                NativeMethods.roaring_bitmap_to_uint32_array(_pointer, values);
+                return (values as IEnumerable<uint>).GetEnumerator();
+            }
+            else
+                return GetValues(bufferSize: 262144).GetEnumerator();
         }
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        private class Enumerator : IEnumerator<uint>
+        public uint[] ToArray()
         {
-            private const int BufferSize = 1000;
+            ulong count = NativeMethods.roaring_bitmap_get_cardinality(_pointer);
+            uint[] values = new uint[count];
+            NativeMethods.roaring_bitmap_to_uint32_array(_pointer, values);
+            return values;
+        }
+        public uint[] ToArray(ulong count)
+        {
+            ulong cardinality = NativeMethods.roaring_bitmap_get_cardinality(_pointer);
+            if (cardinality < count)
+                count = cardinality;
 
-            private BlockingCollection<uint> _buffer;
-            private uint _value;
-            private bool _isDisposed;
-            private ManualResetEventSlim _completeEvent;
+            uint[] values = new uint[count];
+            NativeMethods.roaring_bitmap_to_uint32_array(_pointer, values);
+            return values;
+        }
+        public IEnumerable<uint> GetValues(uint bufferSize = 262144)
+            => GetValues(ulong.MaxValue, bufferSize);
+        public IEnumerable<uint> GetValues(ulong count, uint bufferSize = 262144)
+        {
+            uint[] values = new uint[bufferSize]; //262144 = 1MB / sizeof(uint)
+            uint iterationCount = 0;
+            ulong totalCount = 0;
+            var yieldEvent = new ManualResetEventSlim(false);
+            var continueEvent = new ManualResetEventSlim(false);
+            bool done = false;
 
-            public uint Current
-            {
-                get
-                {
-                    if (_isDisposed)
-                        throw new ObjectDisposedException(nameof(Enumerator));
-                    return _value;
-                }
-            }
-            object IEnumerator.Current => Current;
-
-            public Enumerator()
-            {
-                _buffer = new BlockingCollection<uint>(BufferSize);
-                _completeEvent = new ManualResetEventSlim(false);
-            }
-
-            public void Complete()
-            {
-                _buffer.CompleteAdding();
-                _completeEvent.Wait();
-            }
-            public void Dispose()
-            {
-                _isDisposed = true;
-                _buffer.Dispose();
-                _completeEvent.Set();
-            }
-
-            public bool MoveNext()
-            {
-                if (!_buffer.TryTake(out _value, -1))
-                {
-                    _completeEvent.Set();
-                    return false;
-                }
-                return true;
-            }
-            public void Reset() { throw new NotSupportedException(); }
-
-            public bool AddValue(uint value, IntPtr tag)
+            Task.Run(() =>
             {
                 try
                 {
-                    if (_isDisposed) return false;
-                    _buffer.Add(value);
-                    return !_isDisposed;
+                    if (count < bufferSize)
+                        bufferSize = (uint)count;
+                    NativeMethods.roaring_iterate(_pointer, (x, _) =>
+                    {
+                        values[iterationCount++] = x;
+                        if (iterationCount == bufferSize)
+                        {
+                            totalCount += iterationCount;
+                            if (totalCount == count)
+                                return false;
+
+                            yieldEvent.Set();
+                            continueEvent.Wait();
+                            continueEvent.Reset();
+
+                            iterationCount = 0;
+                            if ((count - totalCount) < bufferSize)
+                                bufferSize = (uint)(count - totalCount);
+                        }
+                        return true;
+                    }, IntPtr.Zero);
                 }
-                catch { return false; }
+                finally
+                {
+                    done = true;
+                    yieldEvent.Set();
+                }
+            });
+
+            while (!done)
+            {
+                yieldEvent.Wait();
+                yieldEvent.Reset();
+                for (int i = 0; i < iterationCount; i++)
+                    yield return values[i];
+                continueEvent.Set();
             }
+        }
+
+        //Other
+
+        public Statistics GetStatistics()
+        {
+            NativeMethods.roaring_bitmap_statistics(_pointer, out var stats);
+            return stats;
         }
     }
 }

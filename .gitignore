@@ -196,8 +196,5 @@ FakesAssemblies/
 *.opt
 
 #Custom
-project.lock.json
-*.VC.db
-*.VC.opendb
-libCRoaring.so
-CRoaring.dll
+/.vscode
+/.vs

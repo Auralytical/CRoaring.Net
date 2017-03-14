@@ -23,21 +23,18 @@ using (var rb2 = new RoaringBitmap())
 ```
 
 ## Compiling
-### For Linux
+### Linux
 Requirements:
 - [GCC](https://gcc.gnu.org/)
 
-Run the `build-linux.sh` script
+Run the `build.sh` script
 
-### For Windows (using Linux)
+### Windows
 Requirements:
-- [MinGW-w64](https://mingw-w64.org)
+- [VS2015 or later](https://www.visualstudio.com/downloads/)
+- [CMake](https://cmake.org/download/)
 
-Run the `build-win.sh` script.
-
-### For Windows (using Visual Studio)
-Requirements:
-- [VS2015 Update 3](https://www.visualstudio.com/downloads/)
+Note: CMake must be available from the command line (added to PATH).
 
 Build the CRoaring and CRoaring.Net projects.
 
@@ -46,4 +43,4 @@ Instead, it is recommended you build using the Linux route above with a virtual 
 
 ## Testing CRoaring.Net
 
-Run the `test.sh` script.
+Run the `test.sh` or `test.bat` scripts.
