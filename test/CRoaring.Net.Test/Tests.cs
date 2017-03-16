@@ -7,6 +7,31 @@ namespace CRoaring
     public class Tests
     {        
         [Fact]
+        public void TestCardinality()
+        {
+            uint[] values = new uint[] { 1, 2, 3, 4, 5, 100, 1000 };
+
+            using (var result = RoaringBitmap.FromValues(values))
+                Assert.Equal(7U, result.Cardinality);
+        }
+        [Fact]
+        public void TestMin()
+        {
+            uint[] values = new uint[] { 1, 2, 3, 4, 5, 100, 1000 };
+
+            using (var result = RoaringBitmap.FromValues(values))
+                Assert.Equal(1U, result.Min);
+        }
+        [Fact]
+        public void TestMax()
+        {
+            uint[] values = new uint[] { 1, 2, 3, 4, 5, 100, 1000 };
+
+            using (var result = RoaringBitmap.FromValues(values))
+                Assert.Equal(1000U, result.Max);
+        }
+
+        [Fact]
         public void TestAdd()
         {
             uint[] values = new uint[] { 1, 2, 3, 4, 5, 100, 1000 };

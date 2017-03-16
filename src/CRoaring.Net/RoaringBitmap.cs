@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace CRoaring
 {
@@ -13,8 +11,10 @@ namespace CRoaring
 
         public ulong Cardinality => NativeMethods.roaring_bitmap_get_cardinality(_pointer);
         public bool IsEmpty => NativeMethods.roaring_bitmap_is_empty(_pointer);
-        //public int SerializedBytes => NativeMethods.roaring_bitmap_size_in_bytes(_pointer);
-        //public int PortableSerializedBytes => NativeMethods.roaring_bitmap_portable_size_in_bytes(_pointer);
+        public uint Min => NativeMethods.roaring_bitmap_minimum(_pointer);
+        public uint Max => NativeMethods.roaring_bitmap_maximum(_pointer);
+        public int SerializedBytes => NativeMethods.roaring_bitmap_size_in_bytes(_pointer);
+        public int PortableSerializedBytes => NativeMethods.roaring_bitmap_portable_size_in_bytes(_pointer);
 
         //Creation/Destruction
 
@@ -62,10 +62,7 @@ namespace CRoaring
         public void Add(uint value)
             => NativeMethods.roaring_bitmap_add(_pointer, value);
         public void Add(params uint[] values)
-        {
-            for (int i = 0; i < values.Length; i++)
-                NativeMethods.roaring_bitmap_add(_pointer, values[i]);
-        }
+            => NativeMethods.roaring_bitmap_add_many(_pointer, (uint)values.Length, values);
 
         public void Remove(uint value)
             => NativeMethods.roaring_bitmap_remove(_pointer, value);
@@ -82,6 +79,15 @@ namespace CRoaring
         {
             if (bitmap == null) return false;
             return NativeMethods.roaring_bitmap_equals(_pointer, bitmap._pointer);
+        }
+
+        public bool IsSubset(RoaringBitmap bitmap, bool isStrict = false)
+        {
+            if (bitmap == null) return false;
+            if (isStrict)
+                return NativeMethods.roaring_bitmap_is_strict_subset(_pointer, bitmap._pointer);
+            else
+                return NativeMethods.roaring_bitmap_is_subset(_pointer, bitmap._pointer);
         }
 
         //Bitmap operations
@@ -194,15 +200,7 @@ namespace CRoaring
 
         public IEnumerator<uint> GetEnumerator()
         {
-            ulong count = NativeMethods.roaring_bitmap_get_cardinality(_pointer);
-            if (count < 262144) //1MB
-            {
-                uint[] values = new uint[count];
-                NativeMethods.roaring_bitmap_to_uint32_array(_pointer, values);
-                return (values as IEnumerable<uint>).GetEnumerator();
-            }
-            else
-                return GetValues(bufferSize: 262144).GetEnumerator();
+            return new Enumerator(_pointer);
         }
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
@@ -223,59 +221,6 @@ namespace CRoaring
             NativeMethods.roaring_bitmap_to_uint32_array(_pointer, values);
             return values;
         }
-        public IEnumerable<uint> GetValues(uint bufferSize = 262144)
-            => GetValues(ulong.MaxValue, bufferSize);
-        public IEnumerable<uint> GetValues(ulong count, uint bufferSize = 262144)
-        {
-            uint[] values = new uint[bufferSize]; //262144 = 1MB / sizeof(uint)
-            uint iterationCount = 0;
-            ulong totalCount = 0;
-            var yieldEvent = new ManualResetEventSlim(false);
-            var continueEvent = new ManualResetEventSlim(false);
-            bool done = false;
-
-            Task.Run(() =>
-            {
-                try
-                {
-                    if (count < bufferSize)
-                        bufferSize = (uint)count;
-                    NativeMethods.roaring_iterate(_pointer, (x, _) =>
-                    {
-                        values[iterationCount++] = x;
-                        if (iterationCount == bufferSize)
-                        {
-                            totalCount += iterationCount;
-                            if (totalCount == count)
-                                return false;
-
-                            yieldEvent.Set();
-                            continueEvent.Wait();
-                            continueEvent.Reset();
-
-                            iterationCount = 0;
-                            if ((count - totalCount) < bufferSize)
-                                bufferSize = (uint)(count - totalCount);
-                        }
-                        return true;
-                    }, IntPtr.Zero);
-                }
-                finally
-                {
-                    done = true;
-                    yieldEvent.Set();
-                }
-            });
-
-            while (!done)
-            {
-                yieldEvent.Wait();
-                yieldEvent.Reset();
-                for (int i = 0; i < iterationCount; i++)
-                    yield return values[i];
-                continueEvent.Set();
-            }
-        }
 
         //Other
 
@@ -283,6 +228,50 @@ namespace CRoaring
         {
             NativeMethods.roaring_bitmap_statistics(_pointer, out var stats);
             return stats;
+        }
+
+        private unsafe class Enumerator : IEnumerator<uint>
+        {
+            private readonly NativeMethods.Iterator* _iterator;
+            private bool _isFirst, _isDisposed;
+            
+            public uint Current => _iterator->current_value;
+            object IEnumerator.Current => Current;
+
+            public Enumerator(IntPtr bitmap)
+            {
+                _iterator = (NativeMethods.Iterator*)NativeMethods.roaring_create_iterator(bitmap);
+                _isFirst = true;
+            }
+
+            public bool MoveNext()
+            {
+                if (_isFirst)
+                {
+                    _isFirst = false;
+                    return _iterator->has_value;
+                }
+                return NativeMethods.roaring_advance_uint32_iterator(new IntPtr(_iterator));
+            }
+
+            public void Reset()
+            {
+                throw new InvalidOperationException();
+            }
+
+            private void Dispose(bool isDisposing)
+            {
+                if (_isDisposed) return;
+
+                NativeMethods.roaring_free_uint32_iterator(new IntPtr(_iterator));
+                _isDisposed = true;
+            }
+            public void Dispose()
+            {
+                Dispose(true);
+                GC.SuppressFinalize(this);
+            }
+            ~Enumerator() => Dispose(false);
         }
     }
 }

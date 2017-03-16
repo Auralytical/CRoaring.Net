@@ -2,7 +2,7 @@
 
 namespace CRoaring
 {
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct Statistics
     {
         public uint ContainerCount;
