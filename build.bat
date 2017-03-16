@@ -1,13 +1,14 @@
 @echo off
-REM CRoaring
-if not exist lib/CRoaring/build mkdir lib/CRoaring/build
+:: CRoaring
+if not exist "lib/CRoaring/build" mkdir "lib/CRoaring/build"
 cd lib/CRoaring/build
 cmake -DCMAKE_GENERATOR_PLATFORM=x64 ..
-MSBuild RoaringBitmap.sln /p:Configuration=ALL_BUILD
-copy roaring.dll ../../../src/CRoaring.Net/
-cd ../../../
+cmake --build . --config Release --target roaring
+cd src/Release
+copy roaring.dll "../../../../../src/CRoaring.Net/" /Y
+cd ../../../../../
 
-REM CRoaring.Net
+:: CRoaring.Net
 cd src/CRoaring.Net
 dotnet restore
 dotnet build

@@ -4,7 +4,6 @@ mkdir -p lib/CRoaring/build
 cd lib/CRoaring/build
 cmake ..
 make
-make test
 cp libroaring.so ../../../src/CRoaring.Net/
 cp libroaring.so ../../../test/CRoaring.Net.Test/
 cd ../../../
