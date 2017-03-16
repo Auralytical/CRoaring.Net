@@ -1,4 +1,4 @@
-# CRoaring.Net v1.0.0-alpha
+# CRoaring.Net
 
 A .Net wrapper for [CRoaring](https://github.com/RoaringBitmap/CRoaring) - a C implementation of [RoaringBitmap](https://github.com/RoaringBitmap/RoaringBitmap).
 
