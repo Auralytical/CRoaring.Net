@@ -10,6 +10,7 @@
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>git://github.com/RogueException/CRoaring</RepositoryUrl>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
   </PropertyGroup>
   <ItemGroup>
     <Content Include="*.dll">
