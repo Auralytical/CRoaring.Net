@@ -198,3 +198,5 @@ FakesAssemblies/
 #Custom
 /.vscode
 /.vs
+*.so
+*.dll
