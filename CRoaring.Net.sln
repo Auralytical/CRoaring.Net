@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26228.4
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{20F281E9-D851-4848-AF00-F40401AB7E3A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{D65028B1-446E-4FD5-89EC-A82C4CFE321D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CRoaring.Net", "src\CRoaring.Net\CRoaring.Net.csproj", "{59225474-33B9-40FD-B8CB-0B5B753BC31A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CRoaring.Net.Test", "test\CRoaring.Net.Test\CRoaring.Net.Test.csproj", "{46B4130E-8255-43AD-BB9D-1C055968EE28}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{59225474-33B9-40FD-B8CB-0B5B753BC31A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{59225474-33B9-40FD-B8CB-0B5B753BC31A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{59225474-33B9-40FD-B8CB-0B5B753BC31A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{59225474-33B9-40FD-B8CB-0B5B753BC31A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{46B4130E-8255-43AD-BB9D-1C055968EE28}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{46B4130E-8255-43AD-BB9D-1C055968EE28}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{46B4130E-8255-43AD-BB9D-1C055968EE28}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{46B4130E-8255-43AD-BB9D-1C055968EE28}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{59225474-33B9-40FD-B8CB-0B5B753BC31A} = {20F281E9-D851-4848-AF00-F40401AB7E3A}
+		{46B4130E-8255-43AD-BB9D-1C055968EE28} = {D65028B1-446E-4FD5-89EC-A82C4CFE321D}
+	EndGlobalSection
+EndGlobal
