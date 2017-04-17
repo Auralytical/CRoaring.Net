@@ -11,6 +11,7 @@
     <RepositoryUrl>git://github.com/RogueException/CRoaring.Net</RepositoryUrl>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
+    <RootNamespace>CRoaring</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <Content Include="*.dll">
