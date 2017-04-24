@@ -1,7 +1,7 @@
 ﻿<Project ToolsVersion="15.0" Sdk="Microsoft.NET.Sdk" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Description>.Net wrapper for CRoaring - a C implementation of Roaring Bitmaps</Description>
-    <VersionPrefix>0.2.22</VersionPrefix>
+    <VersionPrefix>0.2.26</VersionPrefix>
     <TargetFrameworks>net451;netstandard1.1</TargetFrameworks>
     <AssemblyName>CRoaring.Net</AssemblyName>
     <PackageTags>croaring;roaring;bitmap</PackageTags>
