@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace CRoaring
 {
-    internal static class NativeMethods
+    internal static unsafe class NativeMethods
     {
         //Creation/Destruction
 
@@ -14,7 +14,7 @@ namespace CRoaring
         [DllImport("roaring")]
         public static extern IntPtr roaring_bitmap_from_range(uint min, uint max, uint step);
         [DllImport("roaring")]
-        public static extern IntPtr roaring_bitmap_of_ptr(uint count, uint[] values);
+        public static extern IntPtr roaring_bitmap_of_ptr(uint count, uint* values);
         //[DllImport("roaring")]
         //public static extern IntPtr roaring_bitmap_of(uint[] values);
         [DllImport("roaring")]
@@ -36,7 +36,7 @@ namespace CRoaring
         [DllImport("roaring")]
         public static extern void roaring_bitmap_add(IntPtr bitmap, uint value);
         [DllImport("roaring")]
-        public static extern void roaring_bitmap_add_many(IntPtr bitmap, uint count, uint[] values);
+        public static extern void roaring_bitmap_add_many(IntPtr bitmap, uint count, uint* values);
         [DllImport("roaring")]
         public static extern void roaring_bitmap_remove(IntPtr bitmap, uint value);
 

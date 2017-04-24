@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace CRoaring
 {
-    public class RoaringBitmap : IDisposable, IEnumerable<uint>
+    public unsafe class RoaringBitmap : IDisposable, IEnumerable<uint>
     {
         private readonly IntPtr _pointer;
         private bool _isDisposed = false;
@@ -33,8 +33,13 @@ namespace CRoaring
 
         public static RoaringBitmap FromRange(uint min, uint max, uint step = 1)
             => new RoaringBitmap(NativeMethods.roaring_bitmap_from_range(min, max, step));
-        public static RoaringBitmap FromValues(uint[] values)
-            => new RoaringBitmap(NativeMethods.roaring_bitmap_of_ptr((uint)values.Length, values));
+        public static RoaringBitmap FromValues(params uint[] values)
+            => FromValues(values, 0, values.Length);
+        public static RoaringBitmap FromValues(uint[] values, int offset, int count)
+        {
+            fixed (uint* valuePtr = values)
+                new RoaringBitmap(NativeMethods.roaring_bitmap_of_ptr((uint)count, valuePtr + offset));
+        }
 
         protected virtual void Dispose(bool disposing)
         {
@@ -61,15 +66,26 @@ namespace CRoaring
 
         public void Add(uint value)
             => NativeMethods.roaring_bitmap_add(_pointer, value);
-        public void Add(params uint[] values)
-            => NativeMethods.roaring_bitmap_add_many(_pointer, (uint)values.Length, values);
+        public void AddMany(params uint[] values)
+            => AddMany(values, 0, (uint)values.Length);
+        public void AddMany(uint[] values, uint offset, uint count)
+        {
+            fixed (uint* valuePtr = values)
+                NativeMethods.roaring_bitmap_add_many(_pointer, count, valuePtr + offset);
+        }
 
         public void Remove(uint value)
             => NativeMethods.roaring_bitmap_remove(_pointer, value);
-        public void Remove(params uint[] values)
+        public void RemoveMany(params uint[] values)
+            => RemoveMany(values, 0, (uint)values.Length);
+        public void RemoveMany(uint[] values, uint offset, uint count)
         {
-            for (int i = 0; i < values.Length; i++)
-                NativeMethods.roaring_bitmap_remove(_pointer, values[i]);
+            fixed (uint* valuePtr = values)
+            {
+                uint* ptr = valuePtr + offset;
+                for (int i = 0; i < count; i++)
+                    NativeMethods.roaring_bitmap_remove(_pointer, *ptr++);
+            }
         }
 
         public bool Contains(uint value)

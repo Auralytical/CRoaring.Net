@@ -196,7 +196,7 @@ FakesAssemblies/
 *.opt
 
 #Custom
-/.vscode
-/.vs
+.vscode
+.vs
 *.so
 *.dll

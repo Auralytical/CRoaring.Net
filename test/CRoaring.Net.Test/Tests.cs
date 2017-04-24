@@ -45,7 +45,7 @@ namespace CRoaring.Test
                     rb1.Add(values[i]);
                 rb1.Optimize();
 
-                rb2.Add(values);
+                rb2.AddMany(values);
                 rb2.Optimize();
 
                 rb3.Optimize();
@@ -82,7 +82,7 @@ namespace CRoaring.Test
 
             using (var rb = RoaringBitmap.FromValues(initialValues))
             {
-                rb.Remove(removeValues);
+                rb.RemoveMany(removeValues);
                 rb.Optimize();
 
                 Assert.Equal(rb.Cardinality, (uint)finalValues.Length);
@@ -274,7 +274,7 @@ namespace CRoaring.Test
         {
             using (var rb1 = new RoaringBitmap())
             {
-                rb1.Add(1, 2, 3, 4, 5, 100, 1000);
+                rb1.AddMany(1, 2, 3, 4, 5, 100, 1000);
                 rb1.Optimize();
 
                 var s1 = rb1.Serialize(SerializationFormat.Normal);
@@ -293,8 +293,8 @@ namespace CRoaring.Test
         public void TestStats()
         {
             var bitmap = new RoaringBitmap();
-            bitmap.Add(1, 2, 3, 4, 6, 7);
-            bitmap.Add(999991, 999992, 999993, 999994, 999996, 999997);
+            bitmap.AddMany(1, 2, 3, 4, 6, 7);
+            bitmap.AddMany(999991, 999992, 999993, 999994, 999996, 999997);
             var stats = bitmap.GetStatistics();
 
             Assert.Equal(stats.Cardinality, bitmap.Cardinality);
