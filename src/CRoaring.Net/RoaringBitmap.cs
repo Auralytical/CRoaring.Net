@@ -38,7 +38,7 @@ namespace CRoaring
         public static RoaringBitmap FromValues(uint[] values, int offset, int count)
         {
             fixed (uint* valuePtr = values)
-                new RoaringBitmap(NativeMethods.roaring_bitmap_of_ptr((uint)count, valuePtr + offset));
+                return new RoaringBitmap(NativeMethods.roaring_bitmap_of_ptr((uint)count, valuePtr + offset));
         }
 
         protected virtual void Dispose(bool disposing)
@@ -120,21 +120,29 @@ namespace CRoaring
             => new RoaringBitmap(NativeMethods.roaring_bitmap_and(_pointer, bitmap._pointer));
         public void IAnd(RoaringBitmap bitmap)
             => NativeMethods.roaring_bitmap_and_inplace(_pointer, bitmap._pointer);
+        public ulong AndCardinality(RoaringBitmap bitmap)
+            => NativeMethods.roaring_bitmap_and_cardinality(_pointer, bitmap._pointer);
 
         public RoaringBitmap AndNot(RoaringBitmap bitmap)
             => new RoaringBitmap(NativeMethods.roaring_bitmap_andnot(_pointer, bitmap._pointer));
         public void IAndNot(RoaringBitmap bitmap)
             => NativeMethods.roaring_bitmap_andnot_inplace(_pointer, bitmap._pointer);
+        public ulong AndNotCardinality(RoaringBitmap bitmap)
+            => NativeMethods.roaring_bitmap_andnot_cardinality(_pointer, bitmap._pointer);
 
         public RoaringBitmap Or(RoaringBitmap bitmap)
             => new RoaringBitmap(NativeMethods.roaring_bitmap_or(_pointer, bitmap._pointer));
         public void IOr(RoaringBitmap bitmap)
             => NativeMethods.roaring_bitmap_or_inplace(_pointer, bitmap._pointer);
+        public ulong OrCardinality(RoaringBitmap bitmap)
+            => NativeMethods.roaring_bitmap_or_cardinality(_pointer, bitmap._pointer);
 
         public RoaringBitmap Xor(RoaringBitmap bitmap)
             => new RoaringBitmap(NativeMethods.roaring_bitmap_xor(_pointer, bitmap._pointer));
         public void IXor(RoaringBitmap bitmap)
             => NativeMethods.roaring_bitmap_xor_inplace(_pointer, bitmap._pointer);
+        public ulong XorCardinality(RoaringBitmap bitmap)
+            => NativeMethods.roaring_bitmap_xor_cardinality(_pointer, bitmap._pointer);
 
         public static RoaringBitmap OrMany(params RoaringBitmap[] bitmaps)
         {
@@ -168,6 +176,12 @@ namespace CRoaring
             => NativeMethods.roaring_bitmap_lazy_xor_inplace(_pointer, bitmap._pointer, bitsetConversion);
         public void RepairAfterLazy()
             => NativeMethods.roaring_bitmap_repair_after_lazy(_pointer);
+
+        public bool Intersects(RoaringBitmap bitmap)
+            => NativeMethods.roaring_bitmap_intersect(_pointer, bitmap._pointer);
+
+        public double GetJaccardIndex(RoaringBitmap bitmap)
+            => NativeMethods.roaring_bitmap_jaccard_index(_pointer, bitmap._pointer);
 
         //Optimization/Compression
 

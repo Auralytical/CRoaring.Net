@@ -43,6 +43,9 @@ namespace CRoaring
         [DllImport("roaring")]
         [return: MarshalAs(UnmanagedType.I1)]
         public static extern bool roaring_bitmap_contains(IntPtr bitmap, uint value);
+        [DllImport("roaring")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        public static extern bool roaring_bitmap_select(IntPtr bitmap, uint rank, out uint element);
 
         [DllImport("roaring")]
         [return: MarshalAs(UnmanagedType.I1)]
@@ -64,10 +67,6 @@ namespace CRoaring
         //Bitmap operations
 
         [DllImport("roaring")]
-        [return: MarshalAs(UnmanagedType.I1)]
-        public static extern bool roaring_bitmap_select(IntPtr bitmap, uint rank, out uint element);
-
-        [DllImport("roaring")]
         public static extern IntPtr roaring_bitmap_flip(IntPtr bitmap, ulong start, ulong end);
         [DllImport("roaring")]
         public static extern void roaring_bitmap_flip_inplace(IntPtr bitmap, ulong start, ulong end);
@@ -76,16 +75,22 @@ namespace CRoaring
         public static extern IntPtr roaring_bitmap_and(IntPtr bitmap1, IntPtr bitmap2);
         [DllImport("roaring")]
         public static extern void roaring_bitmap_and_inplace(IntPtr bitmap1, IntPtr bitmap2);
+        [DllImport("roaring")]
+        public static extern ulong roaring_bitmap_and_cardinality(IntPtr bitmap1, IntPtr bitmap2);
 
         [DllImport("roaring")]
         public static extern IntPtr roaring_bitmap_andnot(IntPtr bitmap1, IntPtr bitmap2);
         [DllImport("roaring")]
         public static extern void roaring_bitmap_andnot_inplace(IntPtr bitmap1, IntPtr bitmap2);
+        [DllImport("roaring")]
+        public static extern ulong roaring_bitmap_andnot_cardinality(IntPtr bitmap1, IntPtr bitmap2);
 
         [DllImport("roaring")]
         public static extern IntPtr roaring_bitmap_or(IntPtr bitmap1, IntPtr bitmap2);
         [DllImport("roaring")]
         public static extern void roaring_bitmap_or_inplace(IntPtr bitmap1, IntPtr bitmap2);
+        [DllImport("roaring")]
+        public static extern ulong roaring_bitmap_or_cardinality(IntPtr bitmap1, IntPtr bitmap2);
         [DllImport("roaring")]
         public static extern IntPtr roaring_bitmap_or_many(uint count, IntPtr[] bitmaps);
         [DllImport("roaring")]
@@ -95,6 +100,8 @@ namespace CRoaring
         public static extern IntPtr roaring_bitmap_xor(IntPtr bitmap1, IntPtr bitmap2);
         [DllImport("roaring")]
         public static extern void roaring_bitmap_xor_inplace(IntPtr bitmap1, IntPtr bitmap2);
+        [DllImport("roaring")]
+        public static extern ulong roaring_bitmap_xor_cardinality(IntPtr bitmap1, IntPtr bitmap2);
         [DllImport("roaring")]
         public static extern IntPtr roaring_bitmap_xor_many(uint count, IntPtr[] bitmaps);
 
@@ -108,6 +115,13 @@ namespace CRoaring
         public static extern void roaring_bitmap_lazy_xor_inplace(IntPtr bitmap1, IntPtr bitmap2, bool bitsetConversion);
         [DllImport("roaring")]
         public static extern IntPtr roaring_bitmap_repair_after_lazy(IntPtr bitmap);
+
+        [DllImport("roaring")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        public static extern bool roaring_bitmap_intersect(IntPtr bitmap1, IntPtr bitmap2);
+
+        [DllImport("roaring")]
+        public static extern double roaring_bitmap_jaccard_index(IntPtr bitmap1, IntPtr bitmap2);
 
         //Optimization
 
