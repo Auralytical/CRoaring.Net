@@ -2,7 +2,7 @@
   <PropertyGroup>
     <Description>.Net wrapper for CRoaring - a C implementation of Roaring Bitmaps</Description>
     <VersionPrefix>0.2.22</VersionPrefix>
-    <TargetFramework>netstandard1.1</TargetFramework>
+    <TargetFrameworks>net451;netstandard1.1</TargetFrameworks>
     <AssemblyName>CRoaring.Net</AssemblyName>
     <PackageTags>croaring;roaring;bitmap</PackageTags>
     <PackageProjectUrl>https://github.com/RogueException/CRoaring.Net</PackageProjectUrl>
