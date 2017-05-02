@@ -16,18 +16,13 @@ install:
 
 build_script:
 - cmd: mkdir "C:/Projects/CRoaring.Net/lib/CRoaring/build"
-- cmd: >-
-    cd "C:/Projects/CRoaring.Net/lib/CRoaring/build"
-
-    cmake -G"Visual Studio 15 2017" -DCMAKE_GENERATOR_PLATFORM=x64 ..
-
-    cmake --build . --config Release --target roaring
-
-    cd "C:/Projects/CRoaring.Net/lib/CRoaring/build/src/Release"
-
-    copy "roaring.dll" "C:/Projects/CRoaring.Net/src/CRoaring.Net/" /Y
-
-    copy "roaring.dll" "C:/Projects/CRoaring.Net/test/CRoaring.Net.Test/" /Y
+- cmd: cd "C:/Projects/CRoaring.Net/lib/CRoaring/build"
+- cmd: cmake -G"Visual Studio 15 2017" -DCMAKE_GENERATOR_PLATFORM=x64 ..
+- cmd: cmake --build . --config Release --target roaring
+- cmd: cd "C:/Projects/CRoaring.Net/lib/CRoaring/build/src/Release"
+- cmd:  copy "roaring.dll" "C:/Projects/CRoaring.Net/src/CRoaring.Net/" /Y
+- cmd: copy "roaring.dll" "C:/Projects/CRoaring.Net/test/CRoaring.Net.Test/" /Y
+- cmd: cd "C:/Projects/CRoaring.Net"
 - ps: appveyor-retry dotnet restore CRoaring.Net.sln -v Minimal /p:BuildNumber="$Env:BUILD" /p:IsTagBuild="$Env:APPVEYOR_REPO_TAG"
 - ps: dotnet build CRoaring.Net.sln -c Release /p:BuildNumber="$Env:BUILD" /p:IsTagBuild="$Env:APPVEYOR_REPO_TAG"
 - ps: dotnet pack "src\CRoaring.Net\CRoaring.Net.csproj" -c Release -o "../../artifacts" --no-build /p:BuildNumber="$Env:BUILD" /p:IsTagBuild="$Env:APPVEYOR_REPO_TAG"
