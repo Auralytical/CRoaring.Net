@@ -34,7 +34,7 @@ test_script:
 - ps: dotnet test C:/Projects/CRoaring.Net/test/CRoaring.Net.Test/CRoaring.Net.Test.csproj -c Release --no-build /p:BuildNumber="$Env:BUILD" /p:IsTagBuild="$Env:APPVEYOR_REPO_TAG"
 
 artifacts:
-- path: C:/Projects/CRoaring.Net/artifacts/*.nupkg
+- path: artifacts/*.nupkg
   name: MyGet
 deploy:
 - provider: NuGet
