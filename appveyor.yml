@@ -28,7 +28,7 @@ build_script:
     copy "roaring.dll" "C:/Projects/CRoaring.Net/src/CRoaring.Net/" /Y
 
     copy "roaring.dll" "C:/Projects/CRoaring.Net/test/CRoaring.Net.Test/" /Y
-- ps: appveyor-retry dotnet restore Roaring.Net.sln -v Minimal /p:BuildNumber="$Env:BUILD" /p:IsTagBuild="$Env:APPVEYOR_REPO_TAG"
+- ps: appveyor-retry dotnet restore CRoaring.Net.sln -v Minimal /p:BuildNumber="$Env:BUILD" /p:IsTagBuild="$Env:APPVEYOR_REPO_TAG"
 - ps: dotnet build CRoaring.Net.sln -c Release /p:BuildNumber="$Env:BUILD" /p:IsTagBuild="$Env:APPVEYOR_REPO_TAG"
 - ps: dotnet pack "src\CRoaring.Net\CRoaring.Net.csproj" -c Release -o "../../artifacts" --no-build /p:BuildNumber="$Env:BUILD" /p:IsTagBuild="$Env:APPVEYOR_REPO_TAG"
 
