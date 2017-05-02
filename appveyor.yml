@@ -1,0 +1,38 @@
+version: build-{build}
+pull_requests:
+  do_not_increment_build_number: true
+branches:
+  only:
+  - master
+image: Visual Studio 2017
+
+nuget:
+  disable_publish_on_pr: true
+clone_folder: C:/Projects/CRoaring.Net
+
+environment:
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+init:
+- ps: $Env:BUILD = "$($Env:APPVEYOR_BUILD_NUMBER.PadLeft(5, "0"))"
+install:
+- cmd: git submodule update --init --recursive
+
+build_script:
+- cmd: >-
+    if not exist "C:/Projects/CRoaring.Net/lib/CRoaring/build" mkdir "C:/Projects/CRoaring.Net/lib/CRoaring/build"
+    cd C:/Projects/CRoaring.Net/lib/CRoaring/build
+    cmake -G"Visual Studio 15 2017" -DCMAKE_GENERATOR_PLATFORM=x64 ..
+    cmake --build . --config Release --target roaring
+    cd src/Release
+    copy roaring.dll "C:/Projects/CRoaring.Net/src/CRoaring.Net/" /Y
+    copy roaring.dll "C:/Projects/CRoaring.Net/test/CRoaring.Net.Test/" /Y
+
+    cd C:/Projects/CRoaring.Net/src/CRoaring.Net
+    dotnet restore
+    dotnet build
+    cd ../../
+test_script:
+- cmd: >-
+    cd C:/Projects/CRoaring.Net/test/CRoaring.Net.Test
+    dotnet restore
+    dotnet test
