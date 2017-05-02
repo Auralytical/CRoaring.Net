@@ -28,13 +28,13 @@ build_script:
 - cmd: cd "C:/Projects/CRoaring.Net"
 - ps: appveyor-retry dotnet restore CRoaring.Net.sln -v Minimal /p:BuildNumber="$Env:BUILD" /p:IsTagBuild="$Env:APPVEYOR_REPO_TAG"
 - ps: dotnet build CRoaring.Net.sln -c Release /p:BuildNumber="$Env:BUILD" /p:IsTagBuild="$Env:APPVEYOR_REPO_TAG"
-- ps: dotnet pack "src\CRoaring.Net\CRoaring.Net.csproj" -c Release --no-build /p:BuildNumber="$Env:BUILD" /p:IsTagBuild="$Env:APPVEYOR_REPO_TAG"
+- ps: dotnet pack "src\CRoaring.Net\CRoaring.Net.csproj" -c Release -o "../../artifacts" --no-build /p:BuildNumber="$Env:BUILD" /p:IsTagBuild="$Env:APPVEYOR_REPO_TAG"
 
 test_script:
 - ps: dotnet test C:/Projects/CRoaring.Net/test/CRoaring.Net.Test/CRoaring.Net.Test.csproj -c Release --no-build /p:BuildNumber="$Env:BUILD" /p:IsTagBuild="$Env:APPVEYOR_REPO_TAG"
 
 artifacts:
-- path: '**/*.nupkg'
+- path: artifacts/*.nupkg
   name: MyGet
 deploy:
 - provider: NuGet
