@@ -1,28 +1,17 @@
 ﻿<Project ToolsVersion="15.0" Sdk="Microsoft.NET.Sdk" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="../../CRoaring.Net.targets" />
   <PropertyGroup>
-    <Description>.Net wrapper for CRoaring - a C implementation of Roaring Bitmaps</Description>
-    <VersionPrefix>0.2.27</VersionPrefix>
-    <TargetFrameworks>net451;netstandard1.1</TargetFrameworks>
     <AssemblyName>CRoaring.Net</AssemblyName>
-    <PackageTags>croaring;roaring;bitmap</PackageTags>
-    <PackageProjectUrl>https://github.com/RogueException/CRoaring.Net</PackageProjectUrl>
-    <PackageLicenseUrl>http://opensource.org/licenses/MIT</PackageLicenseUrl>
-    <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>git://github.com/RogueException/CRoaring.Net</RepositoryUrl>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
     <RootNamespace>CRoaring</RootNamespace>
+    <Description>.Net wrapper for CRoaring - a C implementation of Roaring Bitmaps</Description>
+    <TargetFrameworks>net45;netstandard1.1</TargetFrameworks>
   </PropertyGroup>
   <ItemGroup>
-    <Content Include="*.dll">
+    <None Include="*.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="*.so">
+    </None>
+    <None Include="*.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="System.Runtime" Version="4.3.0" />
-    <PackageReference Include="System.Runtime.InteropServices" Version="4.3.0" />
+    </None>
   </ItemGroup>
 </Project>
