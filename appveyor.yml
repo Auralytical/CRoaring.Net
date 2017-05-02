@@ -15,10 +15,12 @@ install:
 - cmd: git submodule update --init --recursive
 
 build_script:
-- ps: mkdir "C:/Projects/CRoaring.Net/lib/CRoaring/build"
+- cmd: mkdir "C:/Projects/CRoaring.Net/lib/CRoaring/build"
 - cmd: >-
     cd "C:/Projects/CRoaring.Net/lib/CRoaring/build"
+
     cmake -G"Visual Studio 15 2017" -DCMAKE_GENERATOR_PLATFORM=x64 ..
+
     cmake --build . --config Release --target roaring
 - cmd: copy "C:/Projects/CRoaring.Net/lib/CRoaring/build/src/Release/roaring.dll" "C:/Projects/CRoaring.Net/src/CRoaring.Net/"
 - cmd: copy "C:/Projects/CRoaring.Net/lib/CRoaring/build/src/Release/roaring.dll" "C:/Projects/CRoaring.Net/test/CRoaring.Net.Test/"
