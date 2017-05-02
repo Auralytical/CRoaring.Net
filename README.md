@@ -1,4 +1,6 @@
 # CRoaring.Net
+[![MyGet](https://img.shields.io/myget/rogueexception/vpre/CRoaring.Net.svg)](https://www.myget.org/feed/rogueexception/package/nuget/CRoaring.Net) 
+[![Build status](https://ci.appveyor.com/api/projects/status/b2no6fcbpr8g6bi2?svg=true)](https://ci.appveyor.com/project/RogueException/croaring-net)
 
 A .Net wrapper for [CRoaring](https://github.com/RoaringBitmap/CRoaring) - a C implementation of [RoaringBitmap](https://github.com/RoaringBitmap/RoaringBitmap).
 
