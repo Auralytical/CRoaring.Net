@@ -216,14 +216,20 @@ namespace CRoaring
         }
         public static RoaringBitmap Deserialize(byte[] buffer, SerializationFormat format = SerializationFormat.Normal)
         {
+            IntPtr ptr;
             switch (format)
             {
                 case SerializationFormat.Normal:
                 default:
-                    return new RoaringBitmap(NativeMethods.roaring_bitmap_deserialize(buffer));
+                    ptr = NativeMethods.roaring_bitmap_deserialize(buffer);
+                    break;
                 case SerializationFormat.Portable:
-                    return new RoaringBitmap(NativeMethods.roaring_bitmap_portable_deserialize(buffer));
+                    ptr = NativeMethods.roaring_bitmap_portable_deserialize(buffer);
+                    break;
             }
+            if (ptr == IntPtr.Zero)
+                throw new InvalidOperationException("Deserialization failed");
+            return new RoaringBitmap(ptr);
         }
 
         //Iterators
