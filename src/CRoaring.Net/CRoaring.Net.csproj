@@ -7,11 +7,13 @@
     <TargetFrameworks>net45;netstandard1.1</TargetFrameworks>
   </PropertyGroup>
   <ItemGroup>
-    <None Include="*.dll">
+    <Content Include="*.dll">
+      <PackagePath>runtimes/win-x64/native</PackagePath>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="*.so">
+    </Content>
+    <Content Include="*.so">
+      <PackagePath>runtimes/linux-x64/native</PackagePath>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    </Content>
   </ItemGroup>
 </Project>
