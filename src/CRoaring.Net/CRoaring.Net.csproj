@@ -1,17 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <Import Project="../../CRoaring.Net.targets" />
   <PropertyGroup>
-    <AssemblyName>CRoaring.Net</AssemblyName>
+    <AssemblyName>CRoaring.NetStandard</AssemblyName>
     <RootNamespace>CRoaring</RootNamespace>
-    <Description>.Net wrapper for CRoaring - a C implementation of Roaring Bitmaps</Description>
+    <Description>.Net (+standard) wrapper for CRoaring - a C implementation of Roaring Bitmaps</Description>
     <TargetFrameworks>net45;netstandard1.1</TargetFrameworks>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
   <ItemGroup>
-    <None Include="*.dll">
+    <Content Include="*.dll">
+      <Pack>true</Pack>
+      <PackagePath>runtimes/win-x64/native</PackagePath>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="*.so">
+    </Content>
+    <Content Include="*.so">
+      <Pack>true</Pack>
+      <PackagePath>runtimes/linux-x64/native</PackagePath>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    </Content>
   </ItemGroup>
 </Project>
