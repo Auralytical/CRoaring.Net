@@ -9,10 +9,12 @@
   </PropertyGroup>
   <ItemGroup>
     <Content Include="*.dll">
+      <Pack>true</Pack>
       <PackagePath>runtimes/win-x64/native</PackagePath>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="*.so">
+      <Pack>true</Pack>
       <PackagePath>runtimes/linux-x64/native</PackagePath>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
